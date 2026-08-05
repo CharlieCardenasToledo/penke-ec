@@ -34,6 +34,22 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { headingRef.current?.focus(); }, []);
 
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (!stampPos) return;
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 20 : 5;
+      const { pagina, puntoX, puntoY } = stampPos;
+      if (e.key === "ArrowLeft")  setStampPos({ pagina, puntoX: Math.max(0, puntoX - step), puntoY });
+      if (e.key === "ArrowRight") setStampPos({ pagina, puntoX: puntoX + step, puntoY });
+      if (e.key === "ArrowUp")    setStampPos({ pagina, puntoX, puntoY: puntoY + step });
+      if (e.key === "ArrowDown")  setStampPos({ pagina, puntoX, puntoY: Math.max(0, puntoY - step) });
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [stampPos, setStampPos]);
+
   return (
     <div className="space-y-5">
       {showViewer && (
@@ -98,12 +114,18 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
         {/* Estado actual de la posición */}
         {stampPos && (
           <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
-            <p className="text-xs text-slate-500">
-              Posición: <span className="font-mono text-slate-700">{stampLabel}</span>
-            </p>
+            <div>
+              <p className="text-xs text-slate-500">
+                Posición: <span className="font-mono text-slate-700">{stampLabel}</span>
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                <kbd className="font-mono">↑↓←→</kbd> para mover · <kbd className="font-mono">Shift</kbd>+flecha para saltar
+              </p>
+            </div>
             <button
               onClick={() => setStampPos(null)}
-              className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
+              aria-label="Restablecer posición"
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors ml-4 flex-shrink-0"
             >
               <RotateCcw size={11} /> Restablecer
             </button>

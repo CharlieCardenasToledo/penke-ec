@@ -55,7 +55,7 @@ export function StepReview({
   useEffect(() => { sessionStore.set("firmaec.clave", clave); }, [clave]);
 
   const outputName = doc
-    ? `${doc.split(/[\\/]/).pop()?.replace(/\.pdf$/i, "")}_penke.pdf`
+    ? `${doc.split(/[\\/]/).pop()?.replace(/\.pdf$/i, "").replace(/_penke$/i, "")}_penke.pdf`
     : "";
   const outputFolder = profile.carpetaBaseUsuario
     ? `${profile.carpetaBaseUsuario}/Penké Firmas`

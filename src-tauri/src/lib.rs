@@ -8,6 +8,12 @@ const BACKEND_BUILD_ID: &str = "2026-08-05";
 const BACKEND_API_VERSION: u32 = 2;
 
 #[tauri::command]
+fn verificar_archivo(ruta: String) -> bool {
+    let p = std::path::Path::new(&ruta);
+    p.exists() && p.is_file()
+}
+
+#[tauri::command]
 fn carpeta_penke_defecto() -> Result<String, String> {
     let docs = dirs::document_dir()
         .ok_or_else(|| "No se pudo obtener la carpeta Documentos".to_string())?;
@@ -227,7 +233,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![leer_archivo_base64, carpeta_penke_defecto])
+        .invoke_handler(tauri::generate_handler![leer_archivo_base64, carpeta_penke_defecto, verificar_archivo])
         .manage(JavaProcess(Mutex::new(None)))
         .setup(|app| {
             if backend_responde() && !necesita_reiniciar() {
