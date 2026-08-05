@@ -31,6 +31,7 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
   const canvasRef      = useRef<HTMLCanvasElement>(null);
   const renderTaskRef  = useRef<pdfjsLib.RenderTask | null>(null);
   const viewportRef    = useRef<pdfjsLib.PageViewport | null>(null);
+  const modalRef       = useRef<HTMLDivElement>(null);
 
   const [pdfDoc,        setPdfDoc]        = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [currentPage,   setCurrentPage]   = useState(1);
@@ -165,6 +166,30 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
     return () => window.removeEventListener("keydown", handler);
   }, [onClose, totalPages]);
 
+  // Trampa de foco dentro del modal
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+    function trapFocus(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const focusable = Array.from(
+        modal!.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])"
+        )
+      ).filter((el) => el.offsetParent !== null);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+      }
+    }
+    modal.addEventListener("keydown", trapFocus);
+    return () => modal.removeEventListener("keydown", trapFocus);
+  }, []);
+
   // ── Confirmar posición ────────────────────────────────────────────────────────
   function handleConfirm() {
     if (!stampPdf || !onConfirmPosition) return;
@@ -179,6 +204,7 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pdf-viewer-title"

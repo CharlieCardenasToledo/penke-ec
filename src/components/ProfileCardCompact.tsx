@@ -13,6 +13,7 @@ interface Props {
 
 export function ProfileCardCompact({ profile, onSelect, onEdit, onDelete, onDuplicate }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const status = certStatus(profile.certValidoHasta);
 
@@ -41,7 +42,10 @@ export function ProfileCardCompact({ profile, onSelect, onEdit, onDelete, onDupl
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-bold text-slate-800 truncate">{profile.nombre}</p>
-          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${status.dot}`} title={status.text} />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <div className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+            <span className="text-[10px] text-slate-400">{status.label}</span>
+          </div>
         </div>
         <p className="text-xs text-slate-400 truncate">{profile.certTitular || certName}</p>
         {profile.carpetaBaseUsuario && (
@@ -86,7 +90,7 @@ export function ProfileCardCompact({ profile, onSelect, onEdit, onDelete, onDupl
                 </button>
               )}
               <div className="border-t border-slate-100" />
-              <button onClick={() => { setMenuOpen(false); onDelete(); }}
+              <button onClick={() => { setMenuOpen(false); setConfirming(true); }}
                 className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5">
                 <Trash2 size={13} className="text-red-400" /> Eliminar
               </button>
@@ -94,6 +98,21 @@ export function ProfileCardCompact({ profile, onSelect, onEdit, onDelete, onDupl
           )}
         </div>
       </div>
+      {confirming && (
+        <div className="px-4 py-2.5 bg-red-50 border-t border-red-100 flex items-center justify-between">
+          <p className="text-xs text-red-700 font-medium">¿Eliminar "{profile.nombre}"?</p>
+          <div className="flex gap-2">
+            <button onClick={() => setConfirming(false)}
+              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg transition-colors">
+              Cancelar
+            </button>
+            <button onClick={() => { setConfirming(false); onDelete(); }}
+              className="text-xs text-red-600 font-semibold hover:text-red-800 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors">
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

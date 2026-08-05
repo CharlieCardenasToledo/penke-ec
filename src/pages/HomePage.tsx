@@ -83,8 +83,9 @@ export function HomePage() {
                         : "border-slate-200 text-slate-600 hover:border-blue-300",
                     ].join(" ")}
                   >
-                    <div className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                    {p.nombre}
+                    <div className={`w-1.5 h-1.5 rounded-full ${s.dot} flex-shrink-0`} />
+                    <span>{p.nombre}</span>
+                    <span className="text-[10px] opacity-60">{s.label}</span>
                   </button>
                 );
               })}
@@ -195,6 +196,13 @@ export function HomePage() {
                     className="px-2 py-1 text-xs text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all hidden sm:block"
                   >
                     <FolderOpen size={12} />
+                  </button>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(e.ruta)}
+                    title="Copiar ruta"
+                    className="p-1.5 text-xs text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all hidden sm:flex"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                   </button>
                 </div>
               </motion.div>

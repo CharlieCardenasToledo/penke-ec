@@ -5,7 +5,7 @@ import {
 import { api } from "../../lib/api";
 import { traducirErrorFirma } from "../../lib/errors";
 import type { SignResult } from "./SignWizard";
-import { claveStoreKey, type Preset } from "../../hooks/usePresets";
+import { type Preset } from "../../hooks/usePresets";
 import { sessionStore } from "../../hooks/useSessionStore";
 import { useHistory } from "../../hooks/useHistory";
 import { toast } from "../Toast";
@@ -45,13 +45,7 @@ export function StepReview({
   const tokenAlias = profile.tokenAlias ?? "";
   const { addEntry } = useHistory();
 
-  const [clave,   setClave]   = useState(() => {
-    if (profile.recordarClave && cert) {
-      const saved = localStorage.getItem(claveStoreKey(cert));
-      if (saved) return saved;
-    }
-    return sessionStore.get("firmaec.clave");
-  });
+  const [clave,   setClave]   = useState(() => sessionStore.get("firmaec.clave") ?? "");
   const [signing, setSigning] = useState(false);
   const [error,   setError]   = useState("");
   const claveRef = useRef<HTMLInputElement>(null);

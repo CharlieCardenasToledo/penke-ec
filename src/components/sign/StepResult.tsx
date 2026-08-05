@@ -6,7 +6,7 @@ import {
 import { PdfViewerModal }  from "../PdfViewerModal";
 import { PdfThumbnail }    from "../PdfThumbnail";
 import { toast }           from "../Toast";
-import { openWithDefaultApp, revealInFolder, errorMessage } from "../../lib/fileActions";
+import { openWithDefaultApp, revealInFolder, errorMessage, copyPath } from "../../lib/fileActions";
 import type { SignResult } from "./SignWizard";
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
 
 export function StepResult({ result, onSignAnother, onBack }: Props) {
   const [showViewer, setShowViewer] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
 
   // ── Resultado de lote ──────────────────────────────────────────────────────
   if (result.kind === "batch") {
@@ -114,8 +115,9 @@ export function StepResult({ result, onSignAnother, onBack }: Props) {
   const { response } = result;
 
   async function abrirEnLector() {
+    setOpenError(null);
     const r = await openWithDefaultApp(response.rutaFirmado);
-    if (!r.ok) toast(errorMessage(r.errorType!), "error");
+    if (!r.ok) setOpenError(errorMessage(r.errorType!));
   }
 
   async function mostrarEnCarpeta() {
@@ -166,7 +168,16 @@ export function StepResult({ result, onSignAnother, onBack }: Props) {
         </div>
 
         <div className="bg-white/70 rounded-xl border border-green-100 px-3 py-2.5 mb-4">
-          <p className="text-[10px] text-slate-400 mb-0.5">Guardado en</p>
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <p className="text-[10px] text-slate-400">Guardado en</p>
+            <button
+              onClick={() => { copyPath(response.rutaFirmado); toast("Ruta copiada", "success"); }}
+              className="text-[10px] text-slate-400 hover:text-blue-600 transition-colors"
+              title="Copiar ruta"
+            >
+              Copiar
+            </button>
+          </div>
           <p className="text-xs font-mono text-slate-600 break-all">{response.rutaFirmado}</p>
         </div>
 
@@ -188,6 +199,26 @@ export function StepResult({ result, onSignAnother, onBack }: Props) {
             Firmar otro <ArrowRight size={13} />
           </button>
         </div>
+
+        {openError && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-2 mt-2">
+            <p className="text-sm text-amber-800">{openError}</p>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => { setShowViewer(true); setOpenError(null); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors">
+                Ver en Penké
+              </button>
+              <button onClick={() => { mostrarEnCarpeta(); setOpenError(null); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors">
+                Mostrar en carpeta
+              </button>
+              <button onClick={() => { copyPath(response.rutaFirmado); toast("Ruta copiada", "success"); setOpenError(null); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors">
+                Copiar ruta
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <button onClick={onBack}

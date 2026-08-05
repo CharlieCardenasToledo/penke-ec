@@ -23,6 +23,7 @@ type ViewMode  = "profiles" | "new-profile" | "edit-profile" | "sign";
 function ProfileCard({ profile, onSelect, onDelete, onEdit }: {
   profile: Preset; onSelect: () => void; onDelete: () => void; onEdit: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const status = certStatus(profile.certValidoHasta);
   const certName = (profile.tipoFirma ?? "archivo") === "token"
     ? (profile.tokenNombre || "Token USB")
@@ -53,11 +54,24 @@ function ProfileCard({ profile, onSelect, onDelete, onEdit }: {
               className="p-2 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all">
               <Pencil size={13} />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              aria-label={`Eliminar perfil ${profile.nombre}`}
-              className="p-2 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-all">
-              <Trash2 size={13} />
-            </button>
+            {confirming ? (
+              <div className="flex items-center gap-1">
+                <button onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
+                  className="px-1.5 py-1 text-[10px] text-slate-400 hover:text-slate-600 rounded transition-colors">
+                  No
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  className="px-2 py-1 text-[10px] rounded bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors">
+                  Eliminar
+                </button>
+              </div>
+            ) : (
+              <button onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
+                aria-label={`Eliminar perfil ${profile.nombre}`}
+                className="p-2 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-all">
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
         </div>
 
