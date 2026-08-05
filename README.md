@@ -1,10 +1,20 @@
-# Penké EC
+<p align="center">
+  <img src="./brand/master/penke-imagotipo.svg" alt="Penké" width="360" />
+</p>
 
-**Tu firma digital, auténtica.**
+<p align="center"><strong>Tu firma digital, auténtica.</strong></p>
 
-Aplicación de escritorio para firmar documentos PDF con tu certificado digital emitido por entidades certificadoras acreditadas por ARCOTEL/MINTEL en Ecuador. Descarga e instala — no requiere ningún software adicional.
+<p align="center">
+  <a href="../../actions/workflows/ci.yml"><img src="../../actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Plataformas" />
+  <img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia MIT" />
+</p>
 
-> *Penké* significa **"auténtico"** en idioma Shuar, lengua ancestral del pueblo Shuar del Ecuador.
+---
+
+Penké es una aplicación de escritorio para firmar, verificar y validar documentos PDF con certificados digitales acreditados en Ecuador. Descarga e instala — no requiere ningún software adicional.
+
+> El nombre *Penké* se inspira en una expresión de la lengua Shuar asociada con lo auténtico y verdadero.
 
 ---
 
@@ -41,6 +51,12 @@ npm run tauri build
 - Rust (toolchain estable)
 - Java 17+ (solo para recompilar el backend; el JAR ya está incluido)
 
+### Regenerar iconos de aplicación
+
+```bash
+npx tauri icon brand/master/penke-app-icon.png
+```
+
 ## Arquitectura
 
 ```
@@ -48,7 +64,7 @@ Penké EC
 ├── Frontend: React 19 + TypeScript + Tailwind CSS v4
 ├── Desktop:  Tauri 2 (Rust) — ventana nativa, sistema de archivos
 └── Backend:  Java 17 + Javalin — arranca automáticamente al abrir la app
-              └── Usa la librería FirmaDigital (GPL v3) de MINTEL
+              └── Usa la librería FirmaDigital (GPL v3) distribuida por MINTEL
                   para el proceso criptográfico de firma
 ```
 
@@ -62,7 +78,19 @@ El backend Java se inicia y se cierra junto con la aplicación. El usuario no ne
 | Animaciones | Framer Motion |
 | Visor PDF | pdfjs-dist |
 | Backend | Java 17 + Javalin |
-| Criptografía | FirmaDigital GPL v3 (MINTEL) |
+| Criptografía | FirmaDigital GPL v3 |
+
+## Recursos de marca
+
+Los assets maestros de identidad están en [`brand/master/`](./brand/master/):
+
+| Archivo | Uso |
+|---|---|
+| `penke-isotipo.svg` | Símbolo solo — iconos, avatares, indicadores |
+| `penke-logotipo.svg` | Nombre tipográfico — encabezados, documentos |
+| `penke-imagotipo.svg` | Símbolo + nombre — uso principal |
+| `penke-imagotipo-descriptor.svg` | Imagotipo + descriptor "Firma digital para Ecuador" |
+| `penke-app-icon.svg/png` | Fuente maestra del icono de escritorio |
 
 ## Aviso Legal / Legal Notice
 
@@ -72,7 +100,7 @@ Este proyecto es software independiente y **NO es un producto oficial** del Mini
 
 Este proyecto utiliza la librería **FirmaDigital**, distribuida por MINTEL bajo licencia **GNU GPL v3**, para realizar el proceso criptográfico de firma. De conformidad con la GPL v3, el código fuente de esta aplicación se distribuye bajo los mismos términos. La librería FirmaDigital está disponible en: [minka.gob.ec/mintel](https://minka.gob.ec/mintel/ge/firmaec/firmadigital-libreria)
 
-Los documentos firmados con Penké EC tienen plena validez legal en Ecuador, ya que utilizan los mismos algoritmos criptográficos y cadenas de certificación que la aplicación oficial.
+Penké utiliza certificados digitales y componentes criptográficos compatibles con el ecosistema ecuatoriano. La validez de cada firma depende del certificado, su vigencia, la integridad del documento y la normativa aplicable.
 
 **Este software se proporciona "tal cual" sin garantía de ningún tipo. El uso es responsabilidad exclusiva del usuario.**
 
@@ -81,7 +109,3 @@ Los documentos firmados con Penké EC tienen plena validez legal en Ecuador, ya 
 MIT © 2025 Charlie Cárdenas Toledo
 
 > Nota: por el uso de FirmaDigital (GPL v3), si redistribuyes versiones modificadas de este software, debes hacerlo también bajo GPL v3.
-
----
-
-*Penké — auténtico en Shuar, lengua del pueblo Shuar del Ecuador.*

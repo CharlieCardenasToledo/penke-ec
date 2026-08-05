@@ -5,7 +5,7 @@ import { PenLine, ShieldCheck, BadgeCheck, Clock, KeyRound } from "lucide-react"
 import { useHistory } from "../hooks/useHistory";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { PdfViewerModal } from "./PdfViewerModal";
-import isotipo from "../assets/penke-isotipo.svg";
+import imagotipoWhite from "../assets/penke-imagotipo-white.svg";
 
 const links = [
   { to: "/firmar",    Icon: PenLine,     label: "Firmar" },
@@ -23,14 +23,9 @@ export function Sidebar() {
     <>
     {viewingRuta && <PdfViewerModal ruta={viewingRuta} onClose={() => setViewingRuta(null)} />}
     <aside className="flex flex-col w-60 min-h-screen bg-[#0f172a] text-white flex-shrink-0">
-      <div className="px-5 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <img src={isotipo} alt="Penké" className="w-9 h-9 flex-shrink-0" />
-          <div>
-            <p className="font-bold text-sm leading-tight">Penké</p>
-            <p className="text-xs text-slate-400 leading-tight">v1.0.0</p>
-          </div>
-        </div>
+      <div className="px-5 py-4 border-b border-white/10">
+        <img src={imagotipoWhite} alt="Penké" className="w-40 mb-1.5" />
+        <p className="text-xs text-slate-500">v1.0.0</p>
       </div>
 
       {certName && (

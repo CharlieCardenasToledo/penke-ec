@@ -5,7 +5,7 @@ import {
   Lock, ShieldCheck, CheckCircle2, AlertCircle, Loader2,
   Search, Check, RefreshCw, User, Plus, FolderOpen, FolderCheck, X,
 } from "lucide-react";
-import isotipo from "../assets/penke-isotipo.svg";
+import imagotipo from "../assets/penke-imagotipo.svg";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { DropZone } from "./DropZone";
 import { LugarSelector } from "./LugarSelector";
@@ -369,15 +369,15 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
       <motion.div key="welcome" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
         transition={{ duration: 0.2 }} className="max-w-md mx-auto text-center space-y-8 py-10">
 
-        <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 220, delay: 0.08 }}>
-          <img src={isotipo} alt="Penké" className="w-24 h-24 mx-auto" />
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, delay: 0.08 }}>
+          <img src={imagotipo} alt="Penké" className="w-72 max-w-full mx-auto" />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
-          <h1 className="text-3xl font-bold text-slate-800">Bienvenido a Penké EC</h1>
-          <p className="text-slate-500 mt-3 text-base leading-relaxed max-w-sm mx-auto">
-            Firma documentos con tu certificado digital en segundos. Configura tu perfil en 6 pasos.
+          <p className="text-xl font-semibold text-slate-700">Tu firma digital, auténtica.</p>
+          <p className="text-slate-500 mt-2 text-base leading-relaxed max-w-sm mx-auto">
+            Configura tu perfil de firma en 6 pasos. Solo necesitas tu certificado .p12 o token USB.
           </p>
         </motion.div>
 

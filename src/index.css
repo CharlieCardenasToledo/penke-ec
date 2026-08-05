@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* Paleta de marca */
   --color-brand-50:  #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-400: #60a5fa;
@@ -9,11 +10,25 @@
   --color-brand-700: #1d4ed8;
   --color-brand-900: #1e3a8a;
 
+  /* Tokens semánticos de marca */
+  --color-brand-primary:       #2563EB; /* Azul Firma */
+  --color-brand-primary-hover: #1D4ED8;
+  --color-brand-dark:          #0F172A; /* Tinta Penké */
+  --color-brand-authentic:     #0E8F79; /* Verde Penké — autenticidad */
+
+  /* Superficies */
   --color-surface:   #ffffff;
   --color-bg:        #f8fafc;
   --color-sidebar:   #0f172a;
   --color-sidebar-2: #1e293b;
-  --color-penke:     #0E8F79;
+
+  /* Token legacy — preferir --color-brand-authentic en código nuevo */
+  --color-penke: #0E8F79;
+
+  /* Estados funcionales (distintos del verde de marca) */
+  --color-status-success: #15803D;
+  --color-status-warning: #B45309;
+  --color-status-error:   #B91C1C;
 
   --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
 }
