@@ -22,6 +22,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -32,6 +38,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build Java backend
+        run: npm run build:backend
 
       - name: Build & release
         uses: tauri-apps/tauri-action@v0

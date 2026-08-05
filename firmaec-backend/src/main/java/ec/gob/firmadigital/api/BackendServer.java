@@ -1,5 +1,6 @@
 package ec.gob.firmadigital.api;
 
+import ec.gob.firmadigital.api.BuildInfo;
 import ec.gob.firmadigital.api.routes.FirmarRoute;
 import ec.gob.firmadigital.api.routes.TokensRoute;
 import ec.gob.firmadigital.api.routes.ValidarRoute;
@@ -39,12 +40,18 @@ public class BackendServer {
         app.exception(Exception.class, (e, ctx) -> {
             ctx.header("Access-Control-Allow-Origin", "*");
             String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            ctx.status(500).json(java.util.Map.of("error", msg));
+            ctx.status(500).json(java.util.Map.of("code", "INTERNAL_ERROR", "error", msg));
             e.printStackTrace();
         });
 
         app.get("/health",  ctx -> ctx.result("OK"));
-        app.get("/version", ctx -> ctx.result("1.0.0"));
+        app.get("/version", ctx -> {
+            ctx.contentType("application/json");
+            ctx.result(String.format(
+                "{\"version\":\"%s\",\"buildId\":\"%s\",\"apiVersion\":%d}",
+                BuildInfo.VERSION, BuildInfo.BUILD_ID, BuildInfo.API_VERSION
+            ));
+        });
         app.get("/tokens", new TokensRoute());
 
         app.post("/firmar",    new FirmarRoute());
@@ -52,6 +59,6 @@ public class BackendServer {
         app.post("/validar",   new ValidarRoute());
 
         app.start(PORT);
-        System.out.println("FirmaEC Backend corriendo en puerto " + PORT);
+        System.out.println("FirmaEC Backend v" + BuildInfo.VERSION + " (buildId=" + BuildInfo.BUILD_ID + ", apiVersion=" + BuildInfo.API_VERSION + ") corriendo en puerto " + PORT);
     }
 }

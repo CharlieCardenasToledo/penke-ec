@@ -32,10 +32,18 @@ export interface FirmarRequest {
   pagina?: number;
   puntoX?: number;
   puntoY?: number;
-  carpetaDestino?: string;
+  /** Carpeta base donde se creará {carpetaBaseUsuario}/Penké Firmas/{nombre}_penke.pdf */
+  carpetaBaseUsuario?: string;
 }
 
-export interface FirmarResponse { rutaFirmado: string; firmante: string; cedula: string; }
+export interface FirmarResponse {
+  rutaFirmado: string;
+  carpetaSalida?: string;
+  nombreFirmado?: string;
+  firmante: string;
+  cedula: string;
+  backendBuildId?: string;
+}
 
 export interface Firma {
   cedula: string; firmante: string; entidad: string;

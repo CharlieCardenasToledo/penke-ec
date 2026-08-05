@@ -6,7 +6,7 @@ import {
   PenLine, FileText, Files, KeyRound, HardDrive, Lock,
   Crosshair, SlidersHorizontal, Bookmark, Trash2, FolderOpen,
   ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Loader2,
-  RefreshCw, Search, Check, Plus, ShieldCheck,
+  RefreshCw, Search, Check, Plus, ShieldCheck, FolderCheck, X, Pencil,
 } from "lucide-react";
 
 import { DropZone }              from "../components/DropZone";
@@ -24,7 +24,7 @@ import { usePresets, claveStoreKey, type Preset } from "../hooks/usePresets";
 import { api, type FirmarResponse, type TokenInfo } from "../lib/api";
 
 type Estampado = "QR" | "Simple" | "Avanzada" | "";
-type ViewMode  = "profiles" | "new-profile" | "sign";
+type ViewMode  = "profiles" | "new-profile" | "edit-profile" | "sign";
 interface StampPos { pagina: number; puntoX: number; puntoY: number; }
 
 function traducirErrorFirma(raw: string): string {
@@ -56,17 +56,22 @@ function certStatus(validoHasta?: string) {
 }
 
 // ─── ProfileCard ──────────────────────────────────────────────────────────────
-function ProfileCard({ profile, onSelect, onDelete }: {
-  profile: Preset; onSelect: () => void; onDelete: () => void;
+function ProfileCard({ profile, onSelect, onDelete, onEdit }: {
+  profile: Preset; onSelect: () => void; onDelete: () => void; onEdit: () => void;
 }) {
   const status = certStatus(profile.certValidoHasta);
   const certName = (profile.tipoFirma ?? "archivo") === "token"
     ? (profile.tokenNombre || "Token USB")
     : (profile.cert?.split(/[\\/]/).pop()?.replace(/\.(p12|pfx)$/i, "") || "Certificado");
 
+  const sinCarpeta = !profile.carpetaBaseUsuario;
+
   return (
     <motion.div layout whileHover={{ y: -2 }}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden group">
+      className={[
+        "bg-white rounded-2xl border shadow-sm overflow-hidden group",
+        sinCarpeta ? "border-amber-200" : "border-slate-100",
+      ].join(" ")}>
       <div className="p-5">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -78,10 +83,16 @@ function ProfileCard({ profile, onSelect, onDelete }: {
             <p className="text-sm font-bold text-slate-800 leading-tight">{profile.nombre}</p>
             <p className="text-xs text-slate-400 truncate mt-0.5">{certName}</p>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-all">
-            <Trash2 size={13} />
-          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="p-1 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all">
+              <Pencil size={13} />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-all">
+              <Trash2 size={13} />
+            </button>
+          </div>
         </div>
 
         {profile.certTitular && (
@@ -110,6 +121,20 @@ function ProfileCard({ profile, onSelect, onDelete }: {
             </span>
           )}
         </div>
+
+        {profile.carpetaBaseUsuario ? (
+          <div className="flex items-center gap-1.5 mt-2">
+            <FolderOpen size={10} className="text-slate-400 flex-shrink-0" />
+            <p className="text-[10px] text-slate-400 truncate font-mono">
+              {profile.carpetaBaseUsuario}/Penké Firmas
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 mt-2">
+            <AlertCircle size={10} className="text-amber-400 flex-shrink-0" />
+            <p className="text-[10px] text-amber-600">Sin carpeta de destino configurada</p>
+          </div>
+        )}
       </div>
 
       <button onClick={onSelect}
@@ -140,6 +165,7 @@ function NewProfileForm({ onSave, onCancel }: {
   const [razon,    setRazon]    = useState("");
   const [lugar,    setLugar]    = useState("Quito, Pichincha");
   const [estampado, setEstampado] = useState<Estampado>("QR");
+  const [carpetaBaseUsuario, setCarpetaBaseUsuario] = useState("");
 
   async function detectTokens() {
     setDetecting(true);
@@ -164,6 +190,11 @@ function NewProfileForm({ onSave, onCancel }: {
     } finally { setValidating(false); }
   }
 
+  async function elegirCarpeta() {
+    const selected = await openDialog({ directory: true, multiple: false });
+    if (selected && typeof selected === "string") setCarpetaBaseUsuario(selected);
+  }
+
   function save() {
     if (!nombre.trim()) { toast("Ingresa un nombre para el perfil", "error"); return; }
     if (tipoFirma === "archivo" && !cert) { toast("Selecciona el certificado .p12", "error"); return; }
@@ -174,6 +205,7 @@ function NewProfileForm({ onSave, onCancel }: {
       tokenAlias: tipoFirma === "token" ? selectedAlias : "",
       tokenNombre: tipoFirma === "token" ? (tokenInfo?.nombre ?? "") : "",
       razon, lugar, estampado,
+      carpetaBaseUsuario: carpetaBaseUsuario || undefined,
       certTitular:    certInfo?.titular    ?? (tipoFirma === "token" ? (tokenInfo?.nombre ?? "") : ""),
       certCedula:     certInfo?.cedula     ?? (tipoFirma === "token" ? (tokenInfo?.cedula ?? "") : ""),
       certValidoHasta: certInfo?.validoHasta ?? (tipoFirma === "token" ? (tokenInfo?.validoHasta ?? "") : ""),
@@ -337,6 +369,38 @@ function NewProfileForm({ onSave, onCancel }: {
         </div>
       </div>
 
+      {/* Carpeta de destino */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+          <FolderOpen size={13} /> Carpeta de destino
+        </label>
+        <p className="text-xs text-slate-400">
+          Los documentos firmados se guardarán en <span className="font-mono text-slate-600">Penké Firmas/</span> dentro de esta carpeta.
+        </p>
+        {carpetaBaseUsuario ? (
+          <div className="flex items-start gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
+            <FolderCheck size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-mono text-green-800 break-all">{carpetaBaseUsuario}</p>
+              <p className="text-[10px] text-green-600 mt-0.5">→ {carpetaBaseUsuario}/Penké Firmas/</p>
+            </div>
+            <button onClick={() => setCarpetaBaseUsuario("")}
+              className="text-green-400 hover:text-green-600 flex-shrink-0 transition-colors">
+              <X size={13} />
+            </button>
+          </div>
+        ) : (
+          <button onClick={elegirCarpeta}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 hover:bg-blue-50/50 transition-all group">
+            <FolderOpen size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+            <div className="text-left">
+              <p className="text-sm font-medium text-slate-600 group-hover:text-blue-700 transition-colors">Elegir carpeta</p>
+              <p className="text-xs text-slate-400">Opcional — sin carpeta se usará Documentos/Penké Firmas/</p>
+            </div>
+          </button>
+        )}
+      </div>
+
       {/* Acciones */}
       <div className="flex gap-3">
         <button onClick={onCancel}
@@ -352,8 +416,148 @@ function NewProfileForm({ onSave, onCancel }: {
   );
 }
 
+// ─── EditProfileForm ─────────────────────────────────────────────────────────
+function EditProfileForm({ profile, onSave, onCancel }: {
+  profile: Preset;
+  onSave: (updates: Partial<Omit<Preset, "id">>) => void;
+  onCancel: () => void;
+}) {
+  const [nombre,   setNombre]   = useState(profile.nombre);
+  const [razon,    setRazon]    = useState(profile.razon);
+  const [lugar,    setLugar]    = useState(profile.lugar);
+  const [estampado, setEstampado] = useState<Estampado>((profile.estampado as Estampado) || "QR");
+  const [carpetaBaseUsuario, setCarpetaBaseUsuario] = useState(profile.carpetaBaseUsuario || "");
+
+  async function elegirCarpeta() {
+    const selected = await openDialog({ directory: true, multiple: false });
+    if (selected && typeof selected === "string") setCarpetaBaseUsuario(selected);
+  }
+
+  function save() {
+    if (!nombre.trim()) { toast("Ingresa un nombre para el perfil", "error"); return; }
+    onSave({ nombre: nombre.trim(), razon, lugar, estampado, carpetaBaseUsuario: carpetaBaseUsuario || undefined });
+  }
+
+  const certName = (profile.tipoFirma ?? "archivo") === "token"
+    ? (profile.tokenNombre || "Token USB")
+    : (profile.cert?.split(/[\\/]/).pop()?.replace(/\.(p12|pfx)$/i, "") || "Certificado");
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-5">
+      <div>
+        <button onClick={onCancel}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-5 transition-colors">
+          <ArrowLeft size={15} /> Mis perfiles
+        </button>
+        <h1 className="text-2xl font-bold text-slate-800">Editar perfil</h1>
+        <p className="text-sm text-slate-400 mt-0.5">Modifica los ajustes de este perfil de firma</p>
+      </div>
+
+      {/* Certificado — solo lectura */}
+      <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          {(profile.tipoFirma ?? "archivo") === "token"
+            ? <HardDrive size={16} className="text-blue-600" />
+            : <KeyRound  size={16} className="text-blue-600" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-slate-500 mb-0.5">Certificado (no editable)</p>
+          <p className="text-sm font-medium text-slate-700 truncate">{certName}</p>
+          {profile.certTitular && <p className="text-xs text-slate-400">{profile.certTitular}</p>}
+        </div>
+      </div>
+
+      {/* Nombre */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block">Nombre del perfil</label>
+        <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus
+          onKeyDown={(e) => e.key === "Enter" && save()}
+          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-medium placeholder:font-normal" />
+      </div>
+
+      {/* Ajustes de firma */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+          <SlidersHorizontal size={13} /> Ajustes de firma
+        </label>
+        <div>
+          <p className="text-xs font-medium text-slate-500 mb-2">Tipo de estampado</p>
+          <div className="flex gap-2 flex-wrap">
+            {(["QR", "Simple", "Avanzada", ""] as Estampado[]).map((e) => (
+              <button key={e} type="button" onClick={() => setEstampado(e)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${estampado === e ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"}`}>
+                {e || "Sin estampa"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-slate-500 mb-1.5 block">Razón de firma</label>
+            <input type="text" value={razon} onChange={(e) => setRazon(e.target.value)}
+              placeholder="Aprobado, Revisado..."
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-500 mb-1.5 block">Localización</label>
+            <LugarSelector value={lugar} onChange={setLugar} />
+          </div>
+        </div>
+      </div>
+
+      {/* Carpeta de destino */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+          <FolderOpen size={13} /> Carpeta de destino
+        </label>
+        <p className="text-xs text-slate-400">
+          Los documentos firmados se guardarán en <span className="font-mono text-slate-600">Penké Firmas/</span> dentro de esta carpeta.
+        </p>
+        {carpetaBaseUsuario ? (
+          <div className="flex items-start gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
+            <FolderCheck size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-mono text-green-800 break-all">{carpetaBaseUsuario}</p>
+              <p className="text-[10px] text-green-600 mt-0.5">→ {carpetaBaseUsuario}/Penké Firmas/</p>
+            </div>
+            <button onClick={() => setCarpetaBaseUsuario("")}
+              className="text-green-400 hover:text-green-600 flex-shrink-0 transition-colors">
+              <X size={13} />
+            </button>
+          </div>
+        ) : (
+          <button onClick={elegirCarpeta}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed border-amber-300 hover:border-blue-400 hover:bg-blue-50/50 bg-amber-50/30 transition-all group">
+            <FolderOpen size={18} className="text-amber-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+            <div className="text-left">
+              <p className="text-sm font-medium text-amber-700 group-hover:text-blue-700 transition-colors">Elegir carpeta</p>
+              <p className="text-xs text-amber-500">Sin carpeta se usará Documentos/Penké Firmas/</p>
+            </div>
+          </button>
+        )}
+      </div>
+
+      {/* Acciones */}
+      <div className="flex gap-3">
+        <button onClick={onCancel}
+          className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
+          Cancelar
+        </button>
+        <button onClick={save}
+          className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md flex items-center justify-center gap-2 transition-colors">
+          <Check size={14} /> Guardar cambios
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── SignSection ──────────────────────────────────────────────────────────────
-function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void }) {
+function SignSection({ profile, onBack, onUpdateProfile }: {
+  profile: Preset;
+  onBack: () => void;
+  onUpdateProfile?: (updates: Partial<Omit<Preset, "id">>) => void;
+}) {
   const [batchMode, setBatchMode] = useLocalStorage("firmaec.batchMode", false);
   const [doc,             setDoc]             = useState("");
   const [stampPos,        setStampPos]        = useState<StampPos | null>(null);
@@ -393,8 +597,20 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     return true;
   }
 
-  function resolverCarpetaDestino(): string {
-    return profile.carpetaDestino ?? "";
+  function buildFirmarRequest(rutaDocumento: string, stampPos?: StampPos | null) {
+    return {
+      rutaDocumento,
+      rutaCertificado: tipoFirma === "archivo" ? cert : undefined,
+      alias: tipoFirma === "token" ? tokenAlias : undefined,
+      clave, tipoFirma,
+      estampado: (profile.estampado as "QR" | "Simple" | "Avanzada") || undefined,
+      razonFirma: profile.razon,
+      localizacion: profile.lugar,
+      pagina: stampPos?.pagina ?? 1,
+      puntoX: stampPos?.puntoX ?? 0,
+      puntoY: stampPos?.puntoY ?? 0,
+      carpetaBaseUsuario: profile.carpetaBaseUsuario,
+    };
   }
 
   async function firmar() {
@@ -402,17 +618,7 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     if (!validate()) return;
     setSigning(true); setSigned(false); setError(""); setResult(null);
     try {
-      const carpetaDestino = resolverCarpetaDestino();
-      const res = await api.firmar({
-        rutaDocumento: doc,
-        rutaCertificado: tipoFirma === "archivo" ? cert : undefined,
-        alias: tipoFirma === "token" ? tokenAlias : undefined,
-        clave, tipoFirma,
-        estampado: (profile.estampado as "QR" | "Simple" | "Avanzada") || undefined,
-        razonFirma: profile.razon, localizacion: profile.lugar,
-        pagina: stampPos?.pagina ?? 1, puntoX: stampPos?.puntoX ?? 0, puntoY: stampPos?.puntoY ?? 0,
-        carpetaDestino,
-      });
+      const res = await api.firmar(buildFirmarRequest(doc, stampPos));
       setResult(res); setSigned(true);
       toast(`Firmado por ${res.firmante}`, "success");
       addEntry({
@@ -433,20 +639,10 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     const pending = batchFiles.filter((f) => f.status === "pending");
     if (pending.length === 0) { setError("Agrega al menos un PDF al lote."); return; }
     setError(""); setBatchDone(false);
-    const carpetaDestino = await resolverCarpetaDestino();
     for (const file of pending) {
       setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "signing" } : f));
       try {
-        const res = await api.firmar({
-          rutaDocumento: file.ruta,
-          rutaCertificado: tipoFirma === "archivo" ? cert : undefined,
-          alias: tipoFirma === "token" ? tokenAlias : undefined,
-          clave, tipoFirma,
-          estampado: (profile.estampado as "QR" | "Simple" | "Avanzada") || undefined,
-          razonFirma: profile.razon, localizacion: profile.lugar,
-          pagina: 1, puntoX: 0, puntoY: 0,
-          carpetaDestino,
-        });
+        const res = await api.firmar(buildFirmarRequest(file.ruta));
         setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "done", rutaFirmado: res.rutaFirmado } : f));
         addEntry({
           ruta: res.rutaFirmado, nombre: res.rutaFirmado.split(/[\\/]/).pop() ?? res.rutaFirmado,
@@ -493,6 +689,58 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
   async function abrirArchivo(ruta: string) {
     try { await openPath(ruta); }
     catch { toast("No se pudo abrir el archivo. Verifica que la ruta siga existiendo.", "error"); }
+  }
+
+  // Vista: seleccionar carpeta (perfil sin carpeta configurada)
+  if (!profile.carpetaBaseUsuario && onUpdateProfile) {
+    async function elegirCarpetaYContinuar() {
+      const selected = await openDialog({ directory: true, multiple: false });
+      if (selected && typeof selected === "string") {
+        onUpdateProfile!({ carpetaBaseUsuario: selected });
+      }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        className="max-w-md mx-auto space-y-5 py-8">
+        <button onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+          <ArrowLeft size={15} /> Mis perfiles
+        </button>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <FolderOpen size={20} className="text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-amber-800">Falta la carpeta de destino</h2>
+              <p className="text-sm text-amber-700 mt-1">
+                Este perfil fue creado sin carpeta configurada. Elige dónde guardar los documentos firmados antes de continuar.
+              </p>
+            </div>
+          </div>
+
+          <button onClick={elegirCarpetaYContinuar}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 border-dashed border-amber-300 hover:border-blue-400 hover:bg-blue-50 bg-white transition-all group">
+            <FolderOpen size={22} className="text-amber-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+            <div className="text-left">
+              <p className="text-sm font-semibold text-slate-700 group-hover:text-blue-700 transition-colors">
+                Elegir carpeta de destino
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Los archivos irán a <span className="font-mono">carpeta seleccionada/Penké Firmas/</span>
+              </p>
+            </div>
+            <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-500 ml-auto flex-shrink-0 transition-colors" />
+          </button>
+        </div>
+
+        <p className="text-xs text-center text-slate-400">
+          También puedes editar el perfil desde la pantalla de mis firmas.
+        </p>
+      </motion.div>
+    );
   }
 
   // Vista éxito
@@ -751,9 +999,10 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
 
 // ─── FirmarPage (main export) ─────────────────────────────────────────────────
 export function FirmarPage() {
-  const { presets, savePreset, deletePreset } = usePresets();
+  const { presets, savePreset, deletePreset, updatePreset } = usePresets();
   const [view, setView] = useState<ViewMode>("profiles");
-  const [activeProfile, setActiveProfile] = useState<Preset | null>(null);
+  const [activeProfile,  setActiveProfile]  = useState<Preset | null>(null);
+  const [editingProfile, setEditingProfile] = useState<Preset | null>(null);
 
   if (view === "new-profile") {
     return (
@@ -764,8 +1013,32 @@ export function FirmarPage() {
     );
   }
 
+  if (view === "edit-profile" && editingProfile) {
+    return (
+      <EditProfileForm
+        profile={editingProfile}
+        onSave={(updates) => {
+          updatePreset(editingProfile.id, updates);
+          setEditingProfile(null);
+          setView("profiles");
+          toast("Perfil actualizado", "success");
+        }}
+        onCancel={() => { setEditingProfile(null); setView("profiles"); }}
+      />
+    );
+  }
+
   if (view === "sign" && activeProfile) {
-    return <SignSection profile={activeProfile} onBack={() => { setActiveProfile(null); setView("profiles"); }} />;
+    return (
+      <SignSection
+        profile={activeProfile}
+        onBack={() => { setActiveProfile(null); setView("profiles"); }}
+        onUpdateProfile={(updates) => {
+          updatePreset(activeProfile.id, updates);
+          setActiveProfile((p) => p ? { ...p, ...updates } : p);
+        }}
+      />
+    );
   }
 
   // Profiles view
@@ -790,6 +1063,7 @@ export function FirmarPage() {
                 profile={p}
                 onSelect={() => { setActiveProfile(p); setView("sign"); }}
                 onDelete={() => deletePreset(p.id)}
+                onEdit={() => { setEditingProfile(p); setView("edit-profile"); }}
               />
             </motion.div>
           ))}

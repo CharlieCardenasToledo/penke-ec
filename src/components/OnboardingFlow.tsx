@@ -343,7 +343,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
       tokenAlias:  tipoFirma === "token"   ? selectedAlias            : "",
       tokenNombre: tipoFirma === "token"   ? (tokenInfo?.nombre ?? "") : "",
       razon: "", lugar, estampado, recordarClave,
-      carpetaDestino: carpetaDestino || undefined,
+      carpetaBaseUsuario: carpetaDestino || undefined,
       certTitular:     certInfo?.titular     ?? "",
       certCedula:      certInfo?.cedula      ?? "",
       certValidoHasta: certInfo?.validoHasta ?? "",
@@ -749,10 +749,21 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
             </button>
           )}
 
-          {/* Nota de omisión */}
-          <div className="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed">
-            <span className="font-medium text-slate-700">Si omites este paso,</span> los documentos firmados
-            se guardarán en la misma carpeta que el original, con el sufijo <span className="font-mono">_firmado</span>.
+          {/* Nota informativa */}
+          <div className="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed space-y-1">
+            {carpetaDestino ? (
+              <>
+                <p className="font-medium text-slate-700">Vista previa de destino:</p>
+                <p className="font-mono text-slate-600 break-all">{carpetaDestino}/Penké Firmas/</p>
+                <p className="text-slate-400">El archivo firmado se llamará <span className="font-mono">nombre_penke.pdf</span></p>
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-slate-700">Si omites este paso,</span> los documentos firmados
+                se guardarán en <span className="font-mono">Documentos/Penké Firmas/</span> con el sufijo{" "}
+                <span className="font-mono">_penke.pdf</span>.
+              </>
+            )}
           </div>
 
           <div className="flex gap-3 pt-1">
