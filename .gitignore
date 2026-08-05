@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Java / Maven build artifacts
+firmaec-backend/target/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
