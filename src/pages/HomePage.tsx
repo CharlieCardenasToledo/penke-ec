@@ -5,6 +5,7 @@ import { FileText, FolderOpen, Clock, ArrowRight, Plus } from "lucide-react";
 import { DropZone }             from "../components/DropZone";
 import { ProfileCardCompact }   from "../components/ProfileCardCompact";
 import { PdfViewerModal }       from "../components/PdfViewerModal";
+import { StatusBadge }          from "../components/ui";
 import { openWithDefaultApp, revealInFolder, errorMessage } from "../lib/fileActions";
 import { toast }                from "../components/Toast";
 import { usePresets, type Preset } from "../hooks/usePresets";
@@ -83,9 +84,8 @@ export function HomePage() {
                         : "border-slate-200 text-slate-600 hover:border-blue-300",
                     ].join(" ")}
                   >
-                    <div className={`w-1.5 h-1.5 rounded-full ${s.dot} flex-shrink-0`} />
                     <span>{p.nombre}</span>
-                    <span className="text-[10px] opacity-60">{s.label}</span>
+                    <StatusBadge variant={s.variant} label={s.label} />
                   </button>
                 );
               })}

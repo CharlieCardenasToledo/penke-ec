@@ -7,6 +7,7 @@ import {
   ZoomIn, ZoomOut, Loader2,
   Crosshair, Check, Trash2,
 } from "lucide-react";
+import { IconButton } from "./ui";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -241,46 +242,63 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
 
             {/* Zoom */}
             <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-1">
-              <button onClick={() => setScale((s) => +(Math.max(s - 0.2, 0.5)).toFixed(1))}
-                aria-label="Alejar" className="p-1.5 text-white/60 hover:text-white transition-colors">
+              <IconButton
+                aria-label="Alejar"
+                size="sm"
+                onClick={() => setScale((s) => +(Math.max(s - 0.2, 0.5)).toFixed(1))}
+                className="text-white/60 hover:text-white hover:bg-white/10"
+              >
                 <ZoomOut size={14} />
-              </button>
+              </IconButton>
               <span className="text-xs text-white/50 w-10 text-center select-none" aria-live="polite">
                 {Math.round(scale * 100)}%
               </span>
-              <button onClick={() => setScale((s) => +(Math.min(s + 0.2, 3)).toFixed(1))}
-                aria-label="Acercar" className="p-1.5 text-white/60 hover:text-white transition-colors">
+              <IconButton
+                aria-label="Acercar"
+                size="sm"
+                onClick={() => setScale((s) => +(Math.min(s + 0.2, 3)).toFixed(1))}
+                className="text-white/60 hover:text-white hover:bg-white/10"
+              >
                 <ZoomIn size={14} />
-              </button>
+              </IconButton>
             </div>
 
             {/* Páginas */}
             {totalPages > 0 && (
               <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-1">
-                <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
+                <IconButton
                   aria-label="Página anterior"
-                  className="p-1.5 text-white/60 hover:text-white disabled:opacity-25 transition-colors">
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-25"
+                >
                   <ChevronLeft size={14} />
-                </button>
+                </IconButton>
                 <span className="text-xs text-white/50 px-2 select-none" aria-live="polite">
                   {currentPage} / {totalPages}
                 </span>
-                <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
+                <IconButton
                   aria-label="Página siguiente"
-                  className="p-1.5 text-white/60 hover:text-white disabled:opacity-25 transition-colors">
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-25"
+                >
                   <ChevronRight size={14} />
-                </button>
+                </IconButton>
               </div>
             )}
 
-            <button onClick={onClose}
+            <IconButton
               id="pdf-viewer-close"
               aria-label="Cerrar visor de PDF"
-              className="p-1.5 text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors ml-1">
+              size="sm"
+              onClick={onClose}
+              className="text-white/50 hover:text-white hover:bg-white/10 ml-1"
+            >
               <X size={16} />
-            </button>
+            </IconButton>
           </div>
         </div>
 

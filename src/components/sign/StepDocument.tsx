@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, FileText, Files, Plus } from "lucide-react";
+import { Button } from "../ui";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { DropZone }     from "../DropZone";
@@ -144,13 +145,9 @@ export function StepDocument({
 
       {/* Acción */}
       <div className="flex justify-end">
-        <button
-          onClick={onNext}
-          disabled={!canContinue}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all shadow-md"
-        >
-          Continuar <ArrowRight size={14} />
-        </button>
+        <Button onClick={onNext} disabled={!canContinue} size="lg" icon={<ArrowRight size={14} />}>
+          Continuar
+        </Button>
       </div>
     </div>
   );

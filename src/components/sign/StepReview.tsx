@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, Lock, CheckCircle2, Circle, AlertCircle, Loader2,
+  ArrowLeft, Lock, CheckCircle2, Circle, AlertCircle,
 } from "lucide-react";
+import { Button } from "../ui";
 import { api } from "../../lib/api";
 import { traducirErrorFirma } from "../../lib/errors";
 import type { SignResult } from "./SignWizard";
@@ -241,23 +242,19 @@ export function StepReview({
 
       {/* Acción principal */}
       <div className="flex justify-between items-center">
-        <button onClick={onBack} disabled={signing}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all disabled:opacity-40">
-          <ArrowLeft size={14} /> Atrás
-        </button>
-        <button
+        <Button variant="secondary" onClick={onBack} disabled={signing} icon={<ArrowLeft size={14} />}>
+          Atrás
+        </Button>
+        <Button
           onClick={batchMode ? firmarLote : firmar}
-          disabled={!canSign || signing}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all shadow-md"
+          disabled={!canSign}
+          loading={signing}
+          size="lg"
         >
-          {signing ? (
-            <><Loader2 size={14} className="animate-spin" /> Firmando…</>
-          ) : batchMode ? (
-            `Firmar ${batchFiles.filter((f) => f.status === "pending").length} documentos`
-          ) : (
-            "Firmar documento"
-          )}
-        </button>
+          {signing ? "Firmando…" : batchMode
+            ? `Firmar ${batchFiles.filter((f) => f.status === "pending").length} documentos`
+            : "Firmar documento"}
+        </Button>
       </div>
     </div>
   );

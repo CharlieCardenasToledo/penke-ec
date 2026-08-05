@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Crosshair, RotateCcw } from "lucide-react";
+import { Button } from "../ui";
 import { PdfViewerModal } from "../PdfViewerModal";
 import type { Preset } from "../../hooks/usePresets";
 import type { StampPos } from "./SignWizard";
@@ -142,14 +143,8 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
 
       {/* Navegación */}
       <div className="flex justify-between">
-        <button onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
-          <ArrowLeft size={14} /> Atrás
-        </button>
-        <button onClick={onNext}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-all shadow-md">
-          Continuar <ArrowRight size={14} />
-        </button>
+        <Button variant="secondary" onClick={onBack} icon={<ArrowLeft size={14} />}>Atrás</Button>
+        <Button onClick={onNext} size="lg" icon={<ArrowRight size={14} />}>Continuar</Button>
       </div>
     </div>
   );

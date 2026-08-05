@@ -1,4 +1,5 @@
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { ProgressIndicator } from "./ui";
 
 interface Props {
   active: boolean;
@@ -13,11 +14,9 @@ export function SignProgress({ active, done, fileName, outputFolder }: Props) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-5">
       <div className="flex items-center gap-3 mb-4">
-        {done ? (
-          <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
-        ) : (
-          <Loader2 size={20} className="text-blue-500 animate-spin flex-shrink-0" />
-        )}
+        {done
+          ? <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
+          : <ProgressIndicator mode="indeterminate" />}
         <p className="text-sm font-semibold text-slate-700">
           {done ? "Firma completada" : "Firmando y guardando el documento…"}
         </p>
@@ -25,28 +24,22 @@ export function SignProgress({ active, done, fileName, outputFolder }: Props) {
 
       {(fileName || outputFolder) && (
         <div className="space-y-1.5 mb-4 pl-8">
-          {fileName && (
-            <p className="text-xs text-slate-500 font-mono truncate">{fileName}</p>
-          )}
-          {outputFolder && (
-            <p className="text-xs text-slate-400 truncate">{outputFolder}</p>
-          )}
+          {fileName    && <p className="text-xs text-slate-500 font-mono truncate">{fileName}</p>}
+          {outputFolder && <p className="text-xs text-slate-400 truncate">{outputFolder}</p>}
         </div>
       )}
 
       {!done && (
-        <p className="text-xs text-slate-400 pl-8">
+        <p className="text-xs text-slate-400 pl-8 mb-4">
           No cierres Penké durante este proceso.
         </p>
       )}
 
-      <div className="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-        {done ? (
-          <div className="h-full w-full bg-green-500 rounded-full" />
-        ) : (
-          <div className="h-full bg-blue-500 rounded-full animate-pulse w-2/5" />
-        )}
-      </div>
+      <ProgressIndicator
+        mode="determinate"
+        value={done ? 100 : 40}
+        className="mt-1"
+      />
     </div>
   );
 }
