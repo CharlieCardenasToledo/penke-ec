@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  PenLine, KeyRound, HardDrive, ArrowRight, ArrowLeft,
+  KeyRound, HardDrive, ArrowRight, ArrowLeft,
   Lock, ShieldCheck, CheckCircle2, AlertCircle, Loader2,
   Search, Check, RefreshCw, User, Plus, FolderOpen, FolderCheck, X,
 } from "lucide-react";
+import isotipo from "../assets/penke-isotipo.svg";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { DropZone } from "./DropZone";
 import { LugarSelector } from "./LugarSelector";
@@ -177,7 +178,7 @@ function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
               <ShieldCheck size={14} className="text-white" />
             </div>
             <div>
-              <p className="text-[10px] text-blue-300 uppercase tracking-widest font-medium">Certificado Digital · MINTEL</p>
+              <p className="text-[10px] text-blue-300 uppercase tracking-widest font-medium">Certificado Digital</p>
               {emisor && <p className="text-[10px] text-blue-200 mt-0.5">Emitido por {emisor}</p>}
             </div>
           </div>
@@ -370,15 +371,13 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
 
         <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 220, delay: 0.08 }}>
-          <div className="w-24 h-24 rounded-3xl bg-blue-600 flex items-center justify-center mx-auto shadow-2xl shadow-blue-200">
-            <PenLine size={44} className="text-white" strokeWidth={2} />
-          </div>
+          <img src={isotipo} alt="Penké" className="w-24 h-24 mx-auto" />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
           <h1 className="text-3xl font-bold text-slate-800">Bienvenido a Penké EC</h1>
           <p className="text-slate-500 mt-3 text-base leading-relaxed max-w-sm mx-auto">
-            Firma documentos con tu certificado digital MINTEL en segundos. Configura tu perfil en 6 pasos.
+            Firma documentos con tu certificado digital en segundos. Configura tu perfil en 6 pasos.
           </p>
         </motion.div>
 
@@ -605,7 +604,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
         <div>
           <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 3 de 6</p>
           <h2 className="text-xl font-bold text-slate-800">Tu firma digital</h2>
-          <p className="text-sm text-slate-400 mt-1">Estos son los datos registrados en MINTEL</p>
+          <p className="text-sm text-slate-400 mt-1">Estos son los datos de tu certificado digital</p>
         </div>
 
         {certInfo && (

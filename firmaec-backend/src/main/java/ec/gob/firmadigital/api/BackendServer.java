@@ -43,7 +43,8 @@ public class BackendServer {
             e.printStackTrace();
         });
 
-        app.get("/health", ctx -> ctx.result("OK"));
+        app.get("/health",  ctx -> ctx.result("OK"));
+        app.get("/version", ctx -> ctx.result("1.0.0"));
         app.get("/tokens", new TokensRoute());
 
         app.post("/firmar",    new FirmarRoute());

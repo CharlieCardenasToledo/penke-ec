@@ -3,7 +3,7 @@ import { KeyRound, ShieldCheck, PenLine, Save, Check, Loader2 } from "lucide-rea
 
 const STEPS = [
   { label: "Cargando certificado",    Icon: KeyRound,    ms: 0    },
-  { label: "Validando con MINTEL",    Icon: ShieldCheck, ms: 1200 },
+  { label: "Verificando certificado", Icon: ShieldCheck, ms: 1200 },
   { label: "Aplicando firma digital", Icon: PenLine,     ms: 3000 },
   { label: "Guardando documento",     Icon: Save,        ms: 6500 },
 ];

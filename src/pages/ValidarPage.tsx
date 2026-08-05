@@ -44,7 +44,7 @@ export function ValidarPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Validar certificado</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Verifica vigencia y estado OCSP ante MINTEL</p>
+        <p className="text-sm text-slate-500 mt-0.5">Verifica vigencia y estado OCSP del certificado</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
@@ -76,7 +76,7 @@ export function ValidarPage() {
 
         <motion.button whileTap={{ scale: 0.985 }} onClick={validar} disabled={loading}
           className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-md">
-          {loading ? "Validando con MINTEL…" : "Validar certificado"}
+          {loading ? "Validando certificado…" : "Validar certificado"}
         </motion.button>
       </div>
 

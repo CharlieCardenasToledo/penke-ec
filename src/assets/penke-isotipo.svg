@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Isotipo Penké</title>
+  <desc id="desc">Símbolo de Penké: letra P, documento, trazo de firma y verificación.</desc>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M142 430
+             V128
+             C142 84 172 58 222 58
+             H260
+             C348 58 402 105 402 176
+             C402 248 347 294 260 294
+             H142
+             V430
+             C190 408 232 398 272 402
+             C307 406 335 421 362 447"
+          stroke="#2563EB" stroke-width="48"/>
+    <path d="M318 186 L350 218 L418 142"
+          stroke="#0E8F79" stroke-width="36"/>
+  </g>
+
+</svg>

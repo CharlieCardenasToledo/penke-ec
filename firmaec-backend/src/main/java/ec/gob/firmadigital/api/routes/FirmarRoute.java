@@ -119,13 +119,15 @@ public class FirmarRoute implements Handler {
             : nombreOriginal;
         String nombreFirmado = stem + "_penke.pdf";
 
-        // Carpeta de destino: la indicada o la misma del documento original
-        java.nio.file.Path carpeta;
+        // Carpeta base: la indicada por el usuario o Documentos del sistema
+        java.nio.file.Path base;
         if (carpetaDestino != null && !carpetaDestino.isBlank()) {
-            carpeta = java.nio.file.Paths.get(carpetaDestino);
+            base = java.nio.file.Paths.get(carpetaDestino);
         } else {
-            carpeta = doc.toPath().getParent();
+            base = java.nio.file.Paths.get(System.getProperty("user.home"), "Documents");
         }
+        // Siempre guardar dentro de "Firmas Penké"
+        java.nio.file.Path carpeta = base.resolve("Firmas Penké");
         java.nio.file.Files.createDirectories(carpeta);
 
         String rutaFirmado = carpeta.resolve(nombreFirmado).toString();

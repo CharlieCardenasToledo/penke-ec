@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { openPath }           from "@tauri-apps/plugin-opener";
-import { dirname }            from "@tauri-apps/api/path";
-import { invoke }             from "@tauri-apps/api/core";
+import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   PenLine, FileText, Files, KeyRound, HardDrive, Lock,
   Crosshair, SlidersHorizontal, Bookmark, Trash2, FolderOpen,
@@ -243,7 +241,7 @@ function NewProfileForm({ onSave, onCancel }: {
                     <button onClick={verificarCert} disabled={validating || !clave}
                       className="w-full py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
                       {validating ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
-                      {validating ? "Verificando con MINTEL..." : "Verificar certificado"}
+                      {validating ? "Verificando certificado…" : "Verificar certificado"}
                     </button>
                     <p className="text-xs text-slate-400 text-center">La contraseña se usa solo para verificar — no se guarda en disco</p>
                   </div>
@@ -395,9 +393,8 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     return true;
   }
 
-  async function resolverCarpetaDestino(): Promise<string> {
-    if (profile.carpetaDestino) return profile.carpetaDestino;
-    return invoke<string>("carpeta_penke_defecto");
+  function resolverCarpetaDestino(): string {
+    return profile.carpetaDestino ?? "";
   }
 
   async function firmar() {
@@ -405,7 +402,7 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     if (!validate()) return;
     setSigning(true); setSigned(false); setError(""); setResult(null);
     try {
-      const carpetaDestino = await resolverCarpetaDestino();
+      const carpetaDestino = resolverCarpetaDestino();
       const res = await api.firmar({
         rutaDocumento: doc,
         rutaCertificado: tipoFirma === "archivo" ? cert : undefined,
@@ -489,7 +486,7 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
   function firmarOtro() { setDoc(""); setStampPos(null); setResult(null); setSigned(false); setError(""); }
 
   async function abrirCarpeta(ruta: string) {
-    try { await openPath(await dirname(ruta)); }
+    try { await revealItemInDir(ruta); }
     catch { toast("No se pudo abrir la carpeta. Verifica que la ruta siga existiendo.", "error"); }
   }
 

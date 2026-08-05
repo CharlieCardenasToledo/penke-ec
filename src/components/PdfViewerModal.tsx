@@ -88,7 +88,7 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
     ctx.textAlign    = "center";
     ctx.fillText("FIRMA DIGITAL",   cx, cy - sh / 6);
     ctx.font         = `${Math.max(7, scale * 7)}px Inter, sans-serif`;
-    ctx.fillText("FirmaEC · MINTEL", cx, cy + sh / 6);
+    ctx.fillText("Penké EC", cx, cy + sh / 6);
     ctx.restore();
   }, [scale]);
 

@@ -1,7 +1,7 @@
 [package]
 name = "penke-ec"
 version = "1.0.0"
-description = "Cliente de escritorio moderno para firma digital con certificados MINTEL Ecuador"
+description = "Cliente de escritorio para firma digital con certificados acreditados en Ecuador"
 authors = ["Charlie Cárdenas Toledo"]
 edition = "2021"
 

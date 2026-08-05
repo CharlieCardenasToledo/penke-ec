@@ -3,6 +3,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{Manager, State};
 
+const BACKEND_VERSION: &str = "1.0.0";
+
 #[tauri::command]
 fn carpeta_penke_defecto() -> Result<String, String> {
     let docs = dirs::document_dir()
@@ -69,22 +71,38 @@ fn resolve_jar(app: &tauri::App) -> std::path::PathBuf {
     std::path::PathBuf::from("firmaec-backend.jar")
 }
 
-fn backend_responde() -> bool {
-    reqwest::blocking::Client::builder()
-        .timeout(Duration::from_millis(800))
-        .build()
-        .ok()
-        .and_then(|c| c.get("http://localhost:8765/health").send().ok())
-        .map(|r| r.status().is_success())
-        .unwrap_or(false)
+fn pid_file() -> std::path::PathBuf {
+    std::env::temp_dir().join("penke-backend.pid")
 }
 
-fn matar_proceso_en_puerto_8765() {
-    // Mata cualquier proceso que esté usando el puerto 8765 (backend Java de sesión anterior)
+fn guardar_pid(pid: u32) {
+    let _ = std::fs::write(pid_file(), pid.to_string());
+}
+
+fn matar_backend_anterior() {
+    // Capa 1: matar por PID guardado (preciso, funciona en runs subsiguientes)
+    let file = pid_file();
+    if let Ok(content) = std::fs::read_to_string(&file) {
+        if let Ok(pid) = content.trim().parse::<u32>() {
+            println!("Terminando backend anterior (PID {})...", pid);
+            #[cfg(target_os = "windows")]
+            let _ = Command::new("taskkill").args(["/F", "/PID", &pid.to_string()]).output();
+            #[cfg(not(target_os = "windows"))]
+            let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
+        }
+        let _ = std::fs::remove_file(&file);
+    }
+
+    // Capa 2: fallback por puerto (primera ejecución o proceso huérfano sin PID file)
     #[cfg(target_os = "windows")]
     {
-        let _ = Command::new("cmd")
-            .args(["/C", "for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :8765 ^| findstr LISTEN') do taskkill /F /PID %a"])
+        let _ = Command::new("powershell")
+            .args([
+                "-NoProfile", "-NonInteractive", "-Command",
+                "Get-Process -Id (Get-NetTCPConnection -LocalPort 8765 -State Listen \
+                 -ErrorAction SilentlyContinue).OwningProcess \
+                 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue",
+            ])
             .output();
     }
     #[cfg(not(target_os = "windows"))]
@@ -93,8 +111,32 @@ fn matar_proceso_en_puerto_8765() {
             .args(["-c", "lsof -ti:8765 | xargs kill -9 2>/dev/null || true"])
             .output();
     }
+
     // Dar tiempo al SO para liberar el puerto
-    std::thread::sleep(Duration::from_millis(300));
+    std::thread::sleep(Duration::from_millis(600));
+}
+
+fn version_backend_actual() -> Option<String> {
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_millis(800))
+        .build()
+        .ok()?
+        .get("http://localhost:8765/version")
+        .send()
+        .ok()?
+        .text()
+        .ok()
+        .map(|s| s.trim().to_string())
+}
+
+fn backend_responde() -> bool {
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_millis(800))
+        .build()
+        .ok()
+        .and_then(|c| c.get("http://localhost:8765/health").send().ok())
+        .map(|r| r.status().is_success())
+        .unwrap_or(false)
 }
 
 fn wait_for_backend(timeout_ms: u64) -> bool {
@@ -108,6 +150,22 @@ fn wait_for_backend(timeout_ms: u64) -> bool {
     false
 }
 
+fn necesita_reiniciar() -> bool {
+    match version_backend_actual() {
+        Some(v) => {
+            if v != BACKEND_VERSION {
+                println!("Versión del backend activo ({}) != esperada ({}). Reiniciando.", v, BACKEND_VERSION);
+                true
+            } else {
+                println!("Backend v{} ya corriendo y actualizado.", v);
+                false
+            }
+        }
+        // Si no responde /version (backend viejo sin ese endpoint), reiniciar también
+        None => true,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -117,13 +175,18 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![leer_archivo_base64, carpeta_penke_defecto])
         .manage(JavaProcess(Mutex::new(None)))
         .setup(|app| {
-            // Matar cualquier backend rezagado de sesiones anteriores
-            matar_proceso_en_puerto_8765();
+            // Si hay un backend corriendo, comprobar si su versión coincide
+            if backend_responde() && !necesita_reiniciar() {
+                return Ok(());
+            }
+
+            // Matar el backend anterior por PID guardado
+            matar_backend_anterior();
 
             let jar_path = resolve_jar(app);
             let java = find_java();
 
-            println!("Lanzando backend: {} -jar {:?}", java, jar_path);
+            println!("Lanzando backend v{}: {} -jar {:?}", BACKEND_VERSION, java, jar_path);
 
             let child = Command::new(&java)
                 .arg("-jar")
@@ -131,10 +194,12 @@ pub fn run() {
                 .spawn()
                 .expect("No se pudo iniciar el backend Java. Verifica que Java esté instalado.");
 
+            // Guardar PID para poder matarlo en la próxima sesión
+            guardar_pid(child.id());
+
             let state: State<JavaProcess> = app.state();
             *state.0.lock().unwrap() = Some(child);
 
-            // Health-check en background, no bloquea la UI
             std::thread::spawn(|| {
                 if wait_for_backend(20000) {
                     println!("Backend listo en :8765");
@@ -151,6 +216,7 @@ pub fn run() {
                 let child = state.0.lock().unwrap().take();
                 if let Some(mut c) = child {
                     let _ = c.kill();
+                    let _ = std::fs::remove_file(pid_file());
                 };
             }
         })

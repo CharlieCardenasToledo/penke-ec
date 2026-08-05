@@ -95,7 +95,7 @@ export function PdfPositionPicker({ rutaDocumento, onConfirm, onClose }: Props) 
           ctx.textAlign = "center";
           ctx.fillText("FIRMA DIGITAL", x, y - 6);
           ctx.font = "9px Inter, sans-serif";
-          ctx.fillText("FirmaEC · MINTEL", x, y + 8);
+          ctx.fillText("Penké EC", x, y + 8);
           ctx.restore();
         });
       });

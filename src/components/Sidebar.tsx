@@ -5,6 +5,7 @@ import { PenLine, ShieldCheck, BadgeCheck, Clock, KeyRound } from "lucide-react"
 import { useHistory } from "../hooks/useHistory";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { PdfViewerModal } from "./PdfViewerModal";
+import isotipo from "../assets/penke-isotipo.svg";
 
 const links = [
   { to: "/firmar",    Icon: PenLine,     label: "Firmar" },
@@ -24,12 +25,10 @@ export function Sidebar() {
     <aside className="flex flex-col w-60 min-h-screen bg-[#0f172a] text-white flex-shrink-0">
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-            <PenLine size={16} strokeWidth={2.5} />
-          </div>
+          <img src={isotipo} alt="Penké" className="w-9 h-9 flex-shrink-0" />
           <div>
-            <p className="font-bold text-sm leading-tight">Penké EC</p>
-            <p className="text-xs text-slate-400 leading-tight">v1.0.0 · Ecuador</p>
+            <p className="font-bold text-sm leading-tight">Penké</p>
+            <p className="text-xs text-slate-400 leading-tight">v1.0.0</p>
           </div>
         </div>
       </div>
@@ -85,7 +84,7 @@ export function Sidebar() {
       )}
 
       <div className="px-5 py-4 border-t border-white/10 mt-auto">
-        <p className="text-[10px] text-slate-600">Ecuador · MINTEL</p>
+        <p className="text-[10px] text-slate-600 leading-tight">Compatible con certificados digitales acreditados en Ecuador</p>
       </div>
     </aside>
     </>
