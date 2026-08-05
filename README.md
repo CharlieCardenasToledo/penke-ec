@@ -2,33 +2,28 @@
 
 **Tu firma digital, auténtica.**
 
-Cliente de escritorio moderno para firmar documentos PDF con certificados digitales emitidos por entidades certificadoras acreditadas por ARCOTEL/MINTEL en Ecuador.
+Aplicación de escritorio para firmar documentos PDF con tu certificado digital emitido por entidades certificadoras acreditadas por ARCOTEL/MINTEL en Ecuador. Descarga e instala — no requiere ningún software adicional.
 
 > *Penké* significa **"auténtico"** en idioma Shuar, lengua ancestral del pueblo Shuar del Ecuador.
 
 ---
 
-## ¿Qué es Penké EC?
+## Características
 
-Penké EC es una interfaz de escritorio construida con [Tauri 2](https://tauri.app) + React que mejora la experiencia de uso del servidor local oficial de FirmaEC (distribuido por MINTEL). Ofrece:
-
-- **Onboarding guiado** paso a paso para configurar tu certificado
-- **Visor de PDF integrado** — revisa y ubica tu firma antes de firmar
-- **Soporte para Token USB** físico (HSM)
+- **Onboarding guiado** — configuración paso a paso para cualquier usuario
+- **Visor PDF integrado** — revisa el documento y elige dónde va tu firma
+- **Soporte Token USB** — firma con tu dispositivo HSM físico
 - **Firma en lote** — firma múltiples PDFs de una sola vez
-- **Perfiles de firma** — guarda y reutiliza tus configuraciones
-- **Contraseña recordada** — evita ingresar tu clave cada vez
-- **Localización con autocomplete** — todas las provincias, cantones y parroquias del Ecuador
+- **Perfiles guardados** — reutiliza tu configuración en cada sesión
+- **Contraseña recordada** — no vuelvas a ingresar tu clave cada vez
+- **Localización inteligente** — autocomplete con todas las provincias, cantones y parroquias del Ecuador
+- **Carpeta de destino** — elige dónde se guardan tus documentos firmados
 
-## Requisito previo
+## Descarga
 
-> **Penké EC requiere que la aplicación oficial FirmaEC del MINTEL esté instalada en tu equipo.**
+> Próximamente — releases en la sección [Releases](../../releases)
 
-Descarga FirmaEC oficial: [https://www.firmadigital.gob.ec/descargar-firmaec/](https://www.firmadigital.gob.ec/descargar-firmaec/)
-
-Penké EC se comunica únicamente con el servidor local oficial (`localhost:8765`) que FirmaEC instala en tu máquina. No realiza comunicaciones externas ni reemplaza ningún componente del sistema oficial.
-
-## Instalación y desarrollo
+## Desarrollo
 
 ```bash
 # Instalar dependencias
@@ -41,13 +36,23 @@ npm run tauri dev
 npm run tauri build
 ```
 
-### Requisitos del sistema
-- Windows 10/11 (64-bit)
-- FirmaEC oficial instalado y en ejecución
+### Requisitos para compilar
 - Node.js 18+
-- Rust (para compilar desde fuente)
+- Rust (toolchain estable)
+- Java 17+ (solo para recompilar el backend; el JAR ya está incluido)
 
-## Tecnologías
+## Arquitectura
+
+```
+Penké EC
+├── Frontend: React 19 + TypeScript + Tailwind CSS v4
+├── Desktop:  Tauri 2 (Rust) — ventana nativa, sistema de archivos
+└── Backend:  Java 17 + Javalin — arranca automáticamente al abrir la app
+              └── Usa la librería FirmaDigital (GPL v3) de MINTEL
+                  para el proceso criptográfico de firma
+```
+
+El backend Java se inicia y se cierra junto con la aplicación. El usuario no necesita instalar Java ni ningún software adicional.
 
 | Capa | Tecnología |
 |---|---|
@@ -56,22 +61,26 @@ npm run tauri build
 | Estilos | Tailwind CSS v4 |
 | Animaciones | Framer Motion |
 | Visor PDF | pdfjs-dist |
+| Backend | Java 17 + Javalin |
+| Criptografía | FirmaDigital GPL v3 (MINTEL) |
 
 ## Aviso Legal / Legal Notice
 
-Este proyecto es software independiente de terceros y **NO es un producto oficial** del Ministerio de Telecomunicaciones y de la Sociedad de la Información (MINTEL) del Ecuador, ni está afiliado, respaldado ni autorizado por MINTEL.
+Este proyecto es software independiente y **NO es un producto oficial** del Ministerio de Telecomunicaciones y de la Sociedad de la Información (MINTEL) del Ecuador, ni está afiliado, respaldado ni autorizado por MINTEL.
 
-"FirmaEC" y los logos asociados son marcas del MINTEL Ecuador. Penké EC no redistribuye, modifica ni incluye ningún componente del servidor FirmaEC oficial.
+"FirmaEC" y los logos asociados son marcas del MINTEL Ecuador.
 
-La integración con el servidor local de FirmaEC fue desarrollada mediante inspección del tráfico de red HTTP (no decompilación de binarios), de conformidad con el principio de interoperabilidad del **Código Orgánico de la Economía Social de los Conocimientos, Creatividad e Innovación (INGENIOS)** de Ecuador. El servidor FirmaEC es software libre distribuido bajo GNU GPLv3 por MINTEL.
+Este proyecto utiliza la librería **FirmaDigital**, distribuida por MINTEL bajo licencia **GNU GPL v3**, para realizar el proceso criptográfico de firma. De conformidad con la GPL v3, el código fuente de esta aplicación se distribuye bajo los mismos términos. La librería FirmaDigital está disponible en: [minka.gob.ec/mintel](https://minka.gob.ec/mintel/ge/firmaec/firmadigital-libreria)
 
-Los documentos firmados con Penké EC tienen la misma validez legal que los firmados con la aplicación oficial, ya que el proceso criptográfico lo realiza el servidor oficial de MINTEL en tu equipo.
+Los documentos firmados con Penké EC tienen plena validez legal en Ecuador, ya que utilizan los mismos algoritmos criptográficos y cadenas de certificación que la aplicación oficial.
 
 **Este software se proporciona "tal cual" sin garantía de ningún tipo. El uso es responsabilidad exclusiva del usuario.**
 
 ## Licencia
 
 MIT © 2025 Charlie Cárdenas Toledo
+
+> Nota: por el uso de FirmaDigital (GPL v3), si redistribuyes versiones modificadas de este software, debes hacerlo también bajo GPL v3.
 
 ---
 
