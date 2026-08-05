@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { DropZone }              from "../components/DropZone";
-import { LugarAutocomplete }     from "../components/LugarAutocomplete";
+import { LugarSelector }         from "../components/LugarSelector";
 import { PdfViewerModal }        from "../components/PdfViewerModal";
 import { PdfThumbnail }          from "../components/PdfThumbnail";
 import { SignProgress }          from "../components/SignProgress";
@@ -120,7 +120,7 @@ function NewProfileForm({ onSave, onCancel }: {
   const [certInfo,   setCertInfo]   = useState<{ titular: string; cedula: string; validoHasta: string } | null>(null);
   const [certError,  setCertError]  = useState("");
   const [razon,    setRazon]    = useState("");
-  const [lugar,    setLugar]    = useState("Quito, Ecuador");
+  const [lugar,    setLugar]    = useState("Quito, Pichincha");
   const [estampado, setEstampado] = useState<Estampado>("QR");
 
   async function detectTokens() {
@@ -314,7 +314,7 @@ function NewProfileForm({ onSave, onCancel }: {
           </div>
           <div>
             <label className="text-xs font-medium text-slate-500 mb-1.5 block">Localización</label>
-            <LugarAutocomplete value={lugar} onChange={setLugar} />
+            <LugarSelector value={lugar} onChange={setLugar} />
           </div>
         </div>
       </div>

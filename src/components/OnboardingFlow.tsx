@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { DropZone } from "./DropZone";
-import { LugarAutocomplete } from "./LugarAutocomplete";
+import { LugarSelector } from "./LugarSelector";
 import { api, type TokenInfo } from "../lib/api";
 import { claveStoreKey, type Preset } from "../hooks/usePresets";
 
@@ -278,7 +278,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
 
   // Settings + name + destino
   const [estampado,       setEstampado]       = useState<Estampado>("QR");
-  const [lugar,           setLugar]           = useState("Quito, Pichincha, Ecuador");
+  const [lugar,           setLugar]           = useState("Quito, Pichincha");
   const [nombre,          setNombre]          = useState("Mi firma");
   const [carpetaDestino,  setCarpetaDestino]  = useState("");
   const [saved,           setSaved]           = useState<Omit<Preset, "id"> | null>(null);
@@ -681,7 +681,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
         <div className="space-y-2">
           <p className="text-sm font-medium text-slate-700">¿Desde dónde firmas?</p>
           <p className="text-xs text-slate-400">Aparecerá como localización en el sello del documento</p>
-          <LugarAutocomplete value={lugar} onChange={setLugar} />
+          <LugarSelector value={lugar} onChange={setLugar} />
         </div>
 
         <div className="flex gap-3">
