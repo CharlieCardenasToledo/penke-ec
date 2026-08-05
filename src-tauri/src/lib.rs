@@ -69,7 +69,7 @@ fn resolve_jar(app: &tauri::App) -> std::path::PathBuf {
     std::path::PathBuf::from("firmaec-backend.jar")
 }
 
-fn backend_ya_corre() -> bool {
+fn backend_responde() -> bool {
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_millis(800))
         .build()
@@ -79,10 +79,28 @@ fn backend_ya_corre() -> bool {
         .unwrap_or(false)
 }
 
+fn matar_proceso_en_puerto_8765() {
+    // Mata cualquier proceso que esté usando el puerto 8765 (backend Java de sesión anterior)
+    #[cfg(target_os = "windows")]
+    {
+        let _ = Command::new("cmd")
+            .args(["/C", "for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :8765 ^| findstr LISTEN') do taskkill /F /PID %a"])
+            .output();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = Command::new("sh")
+            .args(["-c", "lsof -ti:8765 | xargs kill -9 2>/dev/null || true"])
+            .output();
+    }
+    // Dar tiempo al SO para liberar el puerto
+    std::thread::sleep(Duration::from_millis(300));
+}
+
 fn wait_for_backend(timeout_ms: u64) -> bool {
     let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms);
     while std::time::Instant::now() < deadline {
-        if backend_ya_corre() {
+        if backend_responde() {
             return true;
         }
         std::thread::sleep(Duration::from_millis(500));
@@ -99,11 +117,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![leer_archivo_base64, carpeta_penke_defecto])
         .manage(JavaProcess(Mutex::new(None)))
         .setup(|app| {
-            // Si el backend ya responde (hot-reload), no lanzar otro
-            if backend_ya_corre() {
-                println!("Backend ya estaba corriendo en :8765");
-                return Ok(());
-            }
+            // Matar cualquier backend rezagado de sesiones anteriores
+            matar_proceso_en_puerto_8765();
 
             let jar_path = resolve_jar(app);
             let java = find_java();

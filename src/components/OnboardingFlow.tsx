@@ -290,7 +290,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
     setTipoFirma("archivo"); setCert(""); setClave("");
     setVerifying(false); setCertInfo(null); setCertError("");
     setTokens([]); setSelectedAlias(""); setDetecting(false);
-    setEstampado("QR"); setLugar("Quito, Pichincha, Ecuador"); setNombre("Mi firma"); setCarpetaDestino(""); setSaved(null);
+    setEstampado("QR"); setLugar("Quito, Pichincha"); setNombre("Mi firma"); setCarpetaDestino(""); setSaved(null);
     setRecordarClave(false);
     goNext("cert-load");
   }
@@ -785,7 +785,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
         </div>
 
         <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && nombre.trim() && saveToDone()}
+          onKeyDown={(e) => e.key === "Enter" && nombre.trim() && goNext("save-folder")}
           placeholder="Mi firma, Aprobación, Gerencia…"
           autoFocus
           className="w-full rounded-xl border-2 border-slate-200 focus:border-blue-400 px-4 py-3.5 text-base font-medium focus:outline-none transition-colors placeholder:font-normal" />
