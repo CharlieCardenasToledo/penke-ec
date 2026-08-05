@@ -217,7 +217,7 @@ function NewProfileForm({ onSave, onCancel }: {
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2 mb-4">
             <KeyRound size={13} /> Certificado digital
           </label>
-          <div className="inline-flex bg-slate-100 rounded-lg p-0.5 mb-5">
+          <div role="group" aria-label="Tipo de certificado" className="inline-flex bg-slate-100 rounded-lg p-0.5 mb-5">
             <button onClick={() => { setTipoFirma("archivo"); setCertInfo(null); }}
               className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${tipoFirma === "archivo" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
               Archivo .p12

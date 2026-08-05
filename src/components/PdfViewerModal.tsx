@@ -48,6 +48,12 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
 
   const fileName = ruta.split(/[\\/]/).pop() ?? ruta;
 
+  // Devolver foco al elemento que tenía el foco al montar el modal
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    return () => { previousFocus?.focus(); };
+  }, []);
+
   // ── Cargar PDF ───────────────────────────────────────────────────────────────
   useEffect(() => {
     setLoading(true);

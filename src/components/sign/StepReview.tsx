@@ -49,6 +49,8 @@ export function StepReview({
   const [signing, setSigning] = useState(false);
   const [error,   setError]   = useState("");
   const claveRef = useRef<HTMLInputElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { headingRef.current?.focus(); }, []);
 
   useEffect(() => { sessionStore.set("firmaec.clave", clave); }, [clave]);
 
@@ -143,7 +145,7 @@ export function StepReview({
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors disabled:opacity-40">
           <ArrowLeft size={15} /> {profile.estampado ? "Posición" : "Documento"}
         </button>
-        <h2 className="text-base font-bold text-slate-800">Revisa y firma</h2>
+        <h2 ref={headingRef} tabIndex={-1} className="text-base font-bold text-slate-800">Revisa y firma</h2>
       </div>
 
       {/* Resumen */}

@@ -477,7 +477,7 @@ export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: 
         </div>
 
         {/* Toggle tipo */}
-        <div className="inline-flex bg-slate-100 rounded-xl p-1">
+        <div role="group" aria-label="Tipo de certificado" className="inline-flex bg-slate-100 rounded-xl p-1">
           <button onClick={() => { setTipoFirma("archivo"); setCert(""); setCertError(""); }}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${tipoFirma === "archivo" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             <KeyRound size={13} /> Archivo .p12

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, FileText, Files, Plus } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,6 +26,9 @@ export function StepDocument({
   const canContinue = batchMode
     ? batchFiles.filter((f) => f.status === "pending").length > 0
     : !!doc;
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { headingRef.current?.focus(); }, []);
 
   async function addBatchFiles() {
     const selected = await openDialog({
@@ -56,6 +60,7 @@ export function StepDocument({
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors">
           <ArrowLeft size={15} /> Mis perfiles
         </button>
+        <h2 ref={headingRef} tabIndex={-1} className="sr-only">Paso 1: Seleccionar documento</h2>
 
         {/* Perfil activo */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center justify-between">

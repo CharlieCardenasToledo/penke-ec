@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Crosshair, RotateCcw } from "lucide-react";
 import { PdfViewerModal } from "../PdfViewerModal";
 import type { Preset } from "../../hooks/usePresets";
@@ -31,6 +31,9 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
     ? `Pág. ${stampPos.pagina} · (${Math.round(stampPos.puntoX)}, ${Math.round(stampPos.puntoY)})`
     : null;
 
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { headingRef.current?.focus(); }, []);
+
   return (
     <div className="space-y-5">
       {showViewer && (
@@ -50,7 +53,7 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors">
           <ArrowLeft size={15} /> Documento
         </button>
-        <h2 className="text-base font-bold text-slate-800">¿Dónde va la firma en el documento?</h2>
+        <h2 ref={headingRef} tabIndex={-1} className="text-base font-bold text-slate-800">¿Dónde va la firma en el documento?</h2>
         <p className="text-sm text-slate-500 mt-1">
           Sello: <span className="font-medium text-slate-700">{profile.estampado}</span>
         </p>
