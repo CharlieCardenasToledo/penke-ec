@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   KeyRound, HardDrive, ArrowRight, ArrowLeft,
   Lock, ShieldCheck, CheckCircle2, AlertCircle, Loader2,
-  Search, Check, RefreshCw, User, Plus, FolderOpen, FolderCheck, X,
+  Search, Check, RefreshCw, User, Plus, X,
 } from "lucide-react";
 import imagotipo from "../assets/penke-imagotipo.svg";
 import { invoke } from "@tauri-apps/api/core";
@@ -11,19 +11,17 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { DropZone } from "./DropZone";
 import { LugarSelector } from "./LugarSelector";
 import { api, type TokenInfo } from "../lib/api";
+import { sessionStore } from "../hooks/useSessionStore";
 import { claveStoreKey, type Preset } from "../hooks/usePresets";
 
 type Estampado = "QR" | "Simple" | "Avanzada" | "";
-type Step = "welcome" | "cert-load" | "cert-password" | "cert-verified" | "settings" | "name" | "save-folder" | "done";
+type Step = "welcome" | "identity" | "verification" | "preferences" | "save" | "done";
 
-// Índice de paso para la barra de progreso (6 pasos reales)
 const STEP_INDEX: Partial<Record<Step, number>> = {
-  "cert-load":     0,
-  "cert-password": 1,
-  "cert-verified": 2,
-  "settings":      3,
-  "name":          4,
-  "save-folder":   5,
+  "identity":     0,
+  "verification": 1,
+  "preferences":  2,
+  "save":         3,
 };
 
 interface Props {
@@ -123,34 +121,25 @@ function MiniDocSinSello() {
 
 function formatRemaining(days: number): string {
   if (days <= 0) return "Certificado vencido";
-
   const y = Math.floor(days / 365);
   const m = Math.floor((days % 365) / 30);
   const d = days % 30;
-
   const parts: string[] = [];
   if (y > 0) parts.push(`${y} ${y === 1 ? "año" : "años"}`);
   if (m > 0) parts.push(`${m} ${m === 1 ? "mes" : "meses"}`);
   if (d > 0 || parts.length === 0) parts.push(`${d} ${d === 1 ? "día" : "días"}`);
-
   const verb = parts.length === 1 && (y === 1 || m === 1 || d === 1) ? "queda" : "quedan";
   const joined =
     parts.length === 1 ? parts[0] :
     parts.length === 2 ? `${parts[0]} y ${parts[1]}` :
     `${parts[0]}, ${parts[1]} y ${parts[2]}`;
-
   return `Te ${verb} ${joined}`;
 }
 
-function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
+export function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
   titular: string; cedula: string; cargo?: string; validoHasta: string; emisor?: string;
 }) {
   const days = Math.ceil((new Date(validoHasta).getTime() - Date.now()) / 86400000);
-
-  // Progress: referencia de 2 años (730 días) = certificado recién emitido
-  const MAX_DAYS = 730;
-  const pct = Math.max(0, Math.min(days / MAX_DAYS, 1));
-
   const isValid  = days > 0;
   const barColor = days > 180 ? "#4ade80" : days > 30 ? "#facc15" : "#f87171";
   const dotColor = days > 180 ? "bg-green-400" : days > 30 ? "bg-yellow-400" : "bg-red-400";
@@ -172,7 +161,6 @@ function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
       <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
 
       <div className="relative p-5">
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
@@ -189,7 +177,6 @@ function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
           </div>
         </div>
 
-        {/* Identidad */}
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
             <User size={18} className="text-white/80" />
@@ -201,26 +188,20 @@ function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
         </div>
         <p className="text-sm text-blue-300 mt-2 font-mono tracking-wider pl-0.5">CI: {cedula}</p>
 
-        {/* Vigencia + progress */}
-        <div className="mt-4 pt-4 border-t border-white/20 space-y-2">
+        <div className="mt-4 pt-4 border-t border-white/20 space-y-1.5">
           <div className="flex items-end justify-between">
             <div>
               <p className="text-[10px] text-blue-400 uppercase tracking-widest">Válido hasta</p>
               <p className="text-sm font-bold text-white mt-0.5">{validoHasta}</p>
             </div>
-            <p className="text-[11px] text-blue-300 text-right leading-tight max-w-[140px]">
+            <p className="text-[11px] text-blue-300 text-right leading-tight max-w-[160px]">
               {formatRemaining(days)}
             </p>
           </div>
-
-          {/* Barra de tiempo restante */}
-          <div className="h-1.5 bg-white/15 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${pct * 100}%` }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-              className="h-full rounded-full"
-              style={{ backgroundColor: barColor }}
+          <div className="h-1 bg-white/15 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ backgroundColor: barColor, width: isValid ? "60%" : "0%" }}
             />
           </div>
           <p className="text-[10px] text-blue-400 text-right">
@@ -232,17 +213,17 @@ function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }: {
   );
 }
 
-// ─── Barra de progreso (5 pasos) ─────────────────────────────────────────────
+// ─── Barra de progreso (4 etapas) ────────────────────────────────────────────
 
 function StepBar({ current }: { current: number }) {
   return (
     <div className="flex items-center gap-1 mb-8">
-      {[0, 1, 2, 3, 4, 5].map((i) => (
+      {[0, 1, 2, 3].map((i) => (
         <div key={i} className={[
-          "h-1 rounded-full transition-all duration-300",
-          i < current  ? "bg-blue-600 flex-1" :
-          i === current ? "bg-blue-400 flex-1" :
-                         "bg-slate-200 w-4",
+          "h-1 rounded-full transition-all duration-300 flex-1",
+          i < current  ? "bg-blue-600" :
+          i === current ? "bg-blue-400" :
+                         "bg-slate-200",
         ].join(" ")} />
       ))}
     </div>
@@ -251,8 +232,8 @@ function StepBar({ current }: { current: number }) {
 
 // ─── Opciones de sello ────────────────────────────────────────────────────────
 
-const STAMP_OPTIONS: { value: Estampado; label: string; desc: string; Preview: () => React.ReactElement }[] = [
-  { value: "QR",       label: "Con QR",    desc: "Código QR verificable en el documento",  Preview: MiniDocQR },
+const STAMP_OPTIONS: { value: Estampado; label: string; desc: string; recommended?: boolean; Preview: () => React.ReactElement }[] = [
+  { value: "QR",       label: "Con QR",    desc: "Código QR verificable en el documento",  recommended: true, Preview: MiniDocQR },
   { value: "Simple",   label: "Simple",    desc: "Bloque de texto con datos del firmante",  Preview: MiniDocSimple },
   { value: "Avanzada", label: "Avanzada",  desc: "Sello completo: logo, datos y QR",        Preview: MiniDocAvanzada },
   { value: "",         label: "Sin sello", desc: "Firma invisible embebida en el PDF",       Preview: MiniDocSinSello },
@@ -265,43 +246,49 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
   const [dir,  setDir]  = useState(1);
 
   // Cert
-  const [tipoFirma,     setTipoFirma]     = useState<"archivo" | "token">("archivo");
-  const [cert,          setCert]          = useState("");
-  const [clave,         setClave]         = useState("");
-  const [verifying,     setVerifying]     = useState(false);
-  const [certInfo,      setCertInfo]      = useState<{ titular: string; cedula: string; cargo?: string; validoHasta: string; emisor?: string } | null>(null);
-  const [certError,     setCertError]     = useState("");
-  const [recordarClave, setRecordarClave] = useState(false);
+  const [tipoFirma,      setTipoFirma]      = useState<"archivo" | "token">("archivo");
+  const [cert,           setCert]           = useState("");
+  const [clave,          setClave]          = useState("");
+  const [verifying,      setVerifying]      = useState(false);
+  const [certInfo,       setCertInfo]       = useState<{ titular: string; cedula: string; cargo?: string; validoHasta: string; emisor?: string } | null>(null);
+  const [certError,      setCertError]      = useState("");
+  const [recordarClave,  setRecordarClave]  = useState(false);
 
   // Token
-  const [tokens,        setTokens]        = useState<TokenInfo[]>([]);
-  const [selectedAlias, setSelectedAlias] = useState("");
-  const [detecting,     setDetecting]     = useState(false);
+  const [tokens,         setTokens]         = useState<TokenInfo[]>([]);
+  const [tokenError,     setTokenError]     = useState("");
+  const [selectedAlias,  setSelectedAlias]  = useState("");
+  const [detecting,      setDetecting]      = useState(false);
 
-  // Settings + name + destino
-  const [estampado,       setEstampado]       = useState<Estampado>("QR");
-  const [lugar,           setLugar]           = useState("Quito, Pichincha");
-  const [nombre,          setNombre]          = useState("Mi firma");
-  const [carpetaDestino,  setCarpetaDestino]  = useState("");
-  const [saved,           setSaved]           = useState<Omit<Preset, "id"> | null>(null);
+  // Preferences + destination
+  const [estampado,      setEstampado]      = useState<Estampado>("QR");
+  const [lugar,          setLugar]          = useState("Quito, Pichincha");
+  const [nombre,         setNombre]         = useState("Mi firma");
+  const [carpetaDestino, setCarpetaDestino] = useState("");
+  const [defaultFolder,  setDefaultFolder]  = useState("");
+  const [saved,          setSaved]          = useState<Omit<Preset, "id"> | null>(null);
 
   function goNext(to: Step) { setDir(1);  setStep(to); }
   function goBack(to: Step) { setDir(-1); setStep(to); }
 
   function resetFlow() {
     setTipoFirma("archivo"); setCert(""); setClave("");
-    setVerifying(false); setCertInfo(null); setCertError("");
+    setVerifying(false); setCertInfo(null); setCertError(""); setTokenError("");
     setTokens([]); setSelectedAlias(""); setDetecting(false);
-    setEstampado("QR"); setLugar("Quito, Pichincha"); setNombre("Mi firma"); setCarpetaDestino(""); setSaved(null);
-    setRecordarClave(false);
-    goNext("cert-load");
+    setEstampado("QR"); setLugar("Quito, Pichincha"); setNombre("Mi firma");
+    setCarpetaDestino(""); setSaved(null); setRecordarClave(false);
+    goNext("identity");
   }
 
   async function detectTokens() {
-    setDetecting(true);
-    try { const res = await api.tokens(); setTokens(res.tokens); }
-    catch { /* silencioso */ }
-    finally { setDetecting(false); }
+    setDetecting(true); setTokenError("");
+    try {
+      const res = await api.tokens();
+      setTokens(res.tokens);
+      if (res.tokens.length === 0) setTokenError("No se detectaron tokens USB. Verifica que el dispositivo esté conectado y el driver instalado.");
+    } catch (e) {
+      setTokenError(e instanceof Error ? e.message : "Error al detectar tokens. Verifica la conexión del dispositivo.");
+    } finally { setDetecting(false); }
   }
 
   async function verificar() {
@@ -310,28 +297,32 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
     try {
       const res = await api.validar(cert, clave);
       setCertInfo({
-        titular:    `${res.nombre} ${res.apellido}`.trim(),
-        cedula:     res.cedula,
-        cargo:      res.cargo   || undefined,
+        titular:     `${res.nombre} ${res.apellido}`.trim(),
+        cedula:      res.cedula,
+        cargo:       res.cargo   || undefined,
         validoHasta: res.validoHasta,
-        emisor:     res.emisor  ? parseCN(res.emisor) : undefined,
+        emisor:      res.emisor  ? parseCN(res.emisor) : undefined,
       });
-      if (recordarClave) localStorage.setItem(claveStoreKey(cert), clave);
-      goNext("cert-verified");
+      // Guardar contraseña: en sesión siempre; en localStorage solo si el usuario lo pidió
+      sessionStore.set(claveStoreKey(cert), clave);
+      if (recordarClave) {
+        localStorage.setItem(claveStoreKey(cert), clave);
+      }
+      goNext("verification");
     } catch (e) {
       setCertError(e instanceof Error ? e.message : "Contraseña incorrecta o certificado inválido");
     } finally { setVerifying(false); }
   }
 
-  function advanceCertLoad() {
+  function advanceIdentity() {
     if (tipoFirma === "archivo") {
-      goNext("cert-password");
+      // La contraseña se ingresa inline; verificar() lleva a verification
+      verificar();
     } else {
-      // Para token: construir certInfo desde el token seleccionado y saltar a verified
       const t = tokens.find((tk) => tk.alias === selectedAlias);
       if (!t) return;
       setCertInfo({ titular: t.nombre, cedula: t.cedula, cargo: t.cargo ?? undefined, validoHasta: t.validoHasta });
-      goNext("cert-verified");
+      goNext("verification");
     }
   }
 
@@ -341,26 +332,39 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
       nombre: nombre.trim() || "Mi firma",
       tipoFirma,
       cert:        tipoFirma === "archivo" ? cert : "",
-      tokenAlias:  tipoFirma === "token"   ? selectedAlias            : "",
+      tokenAlias:  tipoFirma === "token"   ? selectedAlias             : "",
       tokenNombre: tipoFirma === "token"   ? (tokenInfo?.nombre ?? "") : "",
       razon: "", lugar, estampado, recordarClave,
-      carpetaBaseUsuario: carpetaDestino || undefined,
-      certTitular:     certInfo?.titular     ?? "",
-      certCedula:      certInfo?.cedula      ?? "",
+      carpetaBaseUsuario: carpetaDestino || defaultFolder || undefined,
+      certTitular:    certInfo?.titular    ?? "",
+      certCedula:     certInfo?.cedula     ?? "",
       certValidoHasta: certInfo?.validoHasta ?? "",
     };
   }
 
-  async function saveToDone() {
-    let profile = buildProfile();
-    if (!profile.carpetaBaseUsuario) {
-      try {
-        const docs = await invoke<string>("carpeta_penke_defecto");
-        if (docs) profile = { ...profile, carpetaBaseUsuario: docs };
-      } catch { /* continuar sin carpeta — el backend usará Documents como fallback */ }
+  async function saveAndFinish() {
+    let folder = carpetaDestino;
+    if (!folder) {
+      if (defaultFolder) {
+        folder = defaultFolder;
+      } else {
+        try {
+          const docs = await invoke<string>("carpeta_penke_defecto");
+          if (docs) { folder = docs; setDefaultFolder(docs); }
+        } catch { /* usar fallback del backend */ }
+      }
     }
+    const profile = { ...buildProfile(), carpetaBaseUsuario: folder || undefined };
     setSaved(profile);
     goNext("done");
+  }
+
+  async function loadDefaultFolder() {
+    if (defaultFolder) return;
+    try {
+      const docs = await invoke<string>("carpeta_penke_defecto");
+      if (docs) setDefaultFolder(docs);
+    } catch { /* no crítico */ }
   }
 
   const slide = {
@@ -371,7 +375,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
 
   const stepIdx = STEP_INDEX[step] ?? -1;
 
-  // ── Welcome ─────────────────────────────────────────────────────────────────
+  // ── Welcome ──────────────────────────────────────────────────────────────────
   if (step === "welcome") return (
     <AnimatePresence custom={dir} mode="wait">
       <motion.div key="welcome" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
@@ -385,12 +389,12 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
           <p className="text-xl font-semibold text-slate-700">Tu firma digital, auténtica.</p>
           <p className="text-slate-500 mt-2 text-base leading-relaxed max-w-sm mx-auto">
-            Configura tu perfil de firma en 6 pasos. Solo necesitas tu certificado .p12 o token USB.
+            Configura tu perfil de firma en 4 pasos. Solo necesitas tu certificado .p12 o token USB.
           </p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => goNext("cert-load")}
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => goNext("identity")}
             className="inline-flex items-center gap-2.5 px-9 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base shadow-lg shadow-blue-200 transition-colors">
             Comenzar <ArrowRight size={18} />
           </motion.button>
@@ -400,7 +404,7 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
     </AnimatePresence>
   );
 
-  // ── Done ────────────────────────────────────────────────────────────────────
+  // ── Done ─────────────────────────────────────────────────────────────────────
   if (step === "done") return (
     <AnimatePresence custom={dir} mode="wait">
       <motion.div key="done" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
@@ -419,35 +423,58 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
           </p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        {/* Resumen del perfil */}
+        {saved && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+            className="text-left bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-2">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div>
+                <p className="text-slate-400">Perfil</p>
+                <p className="font-medium text-slate-700">{saved.nombre}</p>
+              </div>
+              <div>
+                <p className="text-slate-400">Sello</p>
+                <p className="font-medium text-slate-700">{saved.estampado || "Sin sello"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-slate-400">Destino</p>
+                <p className="font-mono text-slate-600 truncate">
+                  {saved.carpetaBaseUsuario ? `${saved.carpetaBaseUsuario}/Penké Firmas` : "Documentos/Penké Firmas"}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
           className="flex flex-col gap-3 pt-2">
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => saved && onComplete(saved)}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md transition-colors">
+            Firmar mi primer documento <ArrowRight size={16} />
+          </motion.button>
+
           <motion.button whileTap={{ scale: 0.97 }}
             onClick={() => { if (!saved) return; onAddAnother?.(saved); resetFlow(); }}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold transition-colors">
-            <Plus size={16} /> Agregar otra firma
+            <Plus size={16} /> Agregar otro perfil
           </motion.button>
 
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => saved && onComplete(saved)}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md transition-colors">
-            Ir al dashboard <ArrowRight size={16} />
-          </motion.button>
-
-          <p className="text-xs text-slate-400">Puedes agregar más perfiles desde el dashboard en cualquier momento</p>
+          <p className="text-xs text-slate-400">Puedes agregar más perfiles desde el inicio en cualquier momento</p>
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
 
-  // ── Paso 1: Cargar certificado ───────────────────────────────────────────────
-  if (step === "cert-load") return (
+  // ── Etapa 1: Identidad digital ────────────────────────────────────────────────
+  if (step === "identity") return (
     <AnimatePresence custom={dir} mode="wait">
-      <motion.div key="cert-load" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
+      <motion.div key="identity" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
         transition={{ duration: 0.2 }} className="max-w-md mx-auto space-y-5">
 
         <StepBar current={stepIdx} />
         <div>
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 1 de 6</p>
-          <h2 className="text-xl font-bold text-slate-800">Carga tu certificado</h2>
+          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Etapa 1 de 4</p>
+          <h2 className="text-xl font-bold text-slate-800">Tu identidad digital</h2>
           <p className="text-sm text-slate-400 mt-1">¿Cómo tienes el certificado?</p>
         </div>
 
@@ -466,9 +493,67 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
         <AnimatePresence mode="wait">
           {tipoFirma === "archivo" ? (
             <motion.div key="archivo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}>
-              <DropZone label="Seleccionar .p12 o .pfx" accept={["p12", "pfx"]} value={cert}
-                onChange={(p) => { setCert(p); setCertError(""); goNext("cert-password"); }} />
+              transition={{ duration: 0.15 }} className="space-y-4">
+
+              {/* Selección de archivo */}
+              {!cert ? (
+                <DropZone label="Seleccionar .p12 o .pfx" accept={["p12", "pfx"]} value=""
+                  onChange={(p) => { setCert(p); setCertError(""); }} />
+              ) : (
+                <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <KeyRound size={16} className="text-blue-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 truncate">{cert.split(/[\\/]/).pop()}</p>
+                    <p className="text-xs text-slate-400">Certificado cargado</p>
+                  </div>
+                  <button onClick={() => { setCert(""); setClave(""); setCertError(""); }}
+                    className="text-slate-400 hover:text-red-400 transition-colors flex-shrink-0">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Campo de contraseña — aparece inline al seleccionar el archivo */}
+              <AnimatePresence>
+                {cert && (
+                  <motion.div key="clave" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }} className="space-y-3">
+                    <div className="relative">
+                      <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="password"
+                        value={clave}
+                        onChange={(e) => setClave(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && clave && !verifying && advanceIdentity()}
+                        placeholder="Contraseña del certificado"
+                        autoFocus
+                        className="w-full pl-10 pr-4 rounded-xl border-2 border-slate-200 focus:border-blue-400 py-3.5 text-sm font-medium focus:outline-none transition-colors bg-white" />
+                    </div>
+
+                    {certError && (
+                      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-1.5 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <AlertCircle size={13} className="flex-shrink-0" />{certError}
+                      </motion.p>
+                    )}
+
+                    <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                      <input type="checkbox" checked={recordarClave} onChange={(e) => setRecordarClave(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-400 cursor-pointer flex-shrink-0" />
+                      <div>
+                        <span className="text-sm text-slate-600 group-hover:text-slate-800 transition-colors block">
+                          Recordar contraseña en este dispositivo
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          Se guardará localmente. No se envía a ningún servidor.
+                        </span>
+                      </div>
+                    </label>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ) : (
             <motion.div key="token" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -482,6 +567,11 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
                     <p className="text-sm font-medium text-slate-700">Conecta tu token USB</p>
                     <p className="text-xs text-slate-400 mt-0.5">Asegúrate de que el driver está instalado</p>
                   </div>
+                  {tokenError && (
+                    <p className="flex items-center gap-1.5 text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 max-w-xs text-left">
+                      <AlertCircle size={12} className="flex-shrink-0" />{tokenError}
+                    </p>
+                  )}
                   <button onClick={detectTokens} disabled={detecting}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors">
                     {detecting ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
@@ -521,98 +611,31 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
             <ArrowLeft size={14} /> Atrás
           </button>
           <button
-            onClick={advanceCertLoad}
-            disabled={tipoFirma === "archivo" ? !cert : !selectedAlias}
+            onClick={advanceIdentity}
+            disabled={tipoFirma === "archivo" ? (!cert || !clave || verifying) : !selectedAlias}
             className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-sm">
-            Continuar <ArrowRight size={14} />
+            {verifying
+              ? <><Loader2 size={14} className="animate-spin" /> Verificando…</>
+              : tipoFirma === "archivo"
+              ? <><ShieldCheck size={14} /> Verificar</>
+              : <>Continuar <ArrowRight size={14} /></>}
           </button>
         </div>
       </motion.div>
     </AnimatePresence>
   );
 
-  // ── Paso 2: Ingresar contraseña ──────────────────────────────────────────────
-  if (step === "cert-password") return (
+  // ── Etapa 2: Verificación ─────────────────────────────────────────────────────
+  if (step === "verification") return (
     <AnimatePresence custom={dir} mode="wait">
-      <motion.div key="cert-password" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
+      <motion.div key="verification" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
         transition={{ duration: 0.2 }} className="max-w-md mx-auto space-y-5">
 
         <StepBar current={stepIdx} />
         <div>
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 2 de 6</p>
-          <h2 className="text-xl font-bold text-slate-800">Ingresa tu contraseña</h2>
-          <p className="text-sm text-slate-400 mt-1">Necesaria para verificar los datos del certificado</p>
-        </div>
-
-        {/* Archivo seleccionado */}
-        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
-          <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-            <KeyRound size={16} className="text-blue-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-800 truncate">{cert.split(/[\\/]/).pop()}</p>
-            <p className="text-xs text-slate-400">Certificado cargado</p>
-          </div>
-        </div>
-
-        {/* Campo de contraseña */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="password"
-              value={clave}
-              onChange={(e) => setClave(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && clave && verificar()}
-              placeholder="Contraseña del certificado"
-              autoFocus
-              className="w-full pl-10 pr-4 rounded-xl border-2 border-slate-200 focus:border-blue-400 py-3.5 text-sm font-medium focus:outline-none transition-colors bg-white" />
-          </div>
-
-          {certError && (
-            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-1.5 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              <AlertCircle size={13} className="flex-shrink-0" />{certError}
-            </motion.p>
-          )}
-
-          <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-            <input type="checkbox" checked={recordarClave} onChange={(e) => setRecordarClave(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-400 cursor-pointer" />
-            <span className="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">
-              Recordar contraseña en este dispositivo
-            </span>
-          </label>
-          <p className="text-xs text-slate-400 pl-6.5">
-            Se guarda localmente. No se envía a ningún servidor.
-          </p>
-        </div>
-
-        <div className="flex gap-3 pt-1">
-          <button onClick={() => { setClave(""); setCertError(""); goBack("cert-load"); }}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-1.5 transition-colors">
-            <ArrowLeft size={14} /> Atrás
-          </button>
-          <button onClick={verificar} disabled={!clave || verifying}
-            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-sm">
-            {verifying ? <><Loader2 size={14} className="animate-spin" /> Verificando…</> : <><ShieldCheck size={14} /> Verificar</>}
-          </button>
-        </div>
-      </motion.div>
-    </AnimatePresence>
-  );
-
-  // ── Paso 3: Info verificada ──────────────────────────────────────────────────
-  if (step === "cert-verified") return (
-    <AnimatePresence custom={dir} mode="wait">
-      <motion.div key="cert-verified" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
-        transition={{ duration: 0.2 }} className="max-w-md mx-auto space-y-5">
-
-        <StepBar current={stepIdx} />
-        <div>
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 3 de 6</p>
+          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Etapa 2 de 4</p>
           <h2 className="text-xl font-bold text-slate-800">Tu firma digital</h2>
-          <p className="text-sm text-slate-400 mt-1">Estos son los datos de tu certificado digital</p>
+          <p className="text-sm text-slate-400 mt-1">Confirma que estos datos son correctos</p>
         </div>
 
         {certInfo && (
@@ -626,78 +649,104 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
         )}
 
         <div className="flex gap-3 pt-1">
-          <button onClick={() => goBack(tipoFirma === "archivo" ? "cert-password" : "cert-load")}
+          <button onClick={() => goBack("identity")}
             className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-1.5 transition-colors">
-            <ArrowLeft size={14} /> Atrás
+            <ArrowLeft size={14} /> Elegir otro
           </button>
-          <button onClick={() => goNext("settings")}
+          <button onClick={() => goNext("preferences")}
             className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm">
-            Continuar <ArrowRight size={14} />
+            Esta información es correcta <ArrowRight size={14} />
           </button>
         </div>
       </motion.div>
     </AnimatePresence>
   );
 
-  // ── Paso 4: Tipo de sello ────────────────────────────────────────────────────
-  if (step === "settings") return (
+  // ── Etapa 3: Preferencias ─────────────────────────────────────────────────────
+  if (step === "preferences") return (
     <AnimatePresence custom={dir} mode="wait">
-      <motion.div key="settings" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
+      <motion.div key="preferences" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
         transition={{ duration: 0.2 }} className="max-w-md mx-auto space-y-6">
 
         <StepBar current={stepIdx} />
         <div>
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 4 de 6</p>
-          <h2 className="text-xl font-bold text-slate-800">¿Cómo se verá tu firma?</h2>
-          <p className="text-sm text-slate-400 mt-1">Elige el tipo de sello que aparecerá en el PDF</p>
+          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Etapa 3 de 4</p>
+          <h2 className="text-xl font-bold text-slate-800">Preferencias de firma</h2>
+          <p className="text-sm text-slate-400 mt-1">Elige el tipo de sello y los datos del perfil</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {STAMP_OPTIONS.map(({ value, label, desc, Preview }) => {
-            const selected = estampado === value;
-            return (
-              <button key={value} onClick={() => setEstampado(value)}
-                className={[
-                  "relative flex flex-col items-center text-center rounded-2xl border-2 p-4 transition-all",
-                  selected
-                    ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-100"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm",
-                ].join(" ")}>
+        {/* Tipo de sello */}
+        <div>
+          <p className="text-sm font-medium text-slate-700 mb-3">¿Cómo se verá tu firma?</p>
+          <div className="grid grid-cols-2 gap-3">
+            {STAMP_OPTIONS.map(({ value, label, desc, recommended, Preview }) => {
+              const selected = estampado === value;
+              return (
+                <button key={value} onClick={() => setEstampado(value)}
+                  className={[
+                    "relative flex flex-col items-center text-center rounded-2xl border-2 p-4 transition-all",
+                    selected
+                      ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-100"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm",
+                  ].join(" ")}>
 
-                {selected && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                    className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                    <Check size={10} className="text-white" />
-                  </motion.div>
-                )}
+                  {recommended && (
+                    <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wide text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">
+                      Recomendado
+                    </span>
+                  )}
+                  {selected && (
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                      className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                      <Check size={10} className="text-white" />
+                    </motion.div>
+                  )}
 
-                <div className="w-16 h-20 mb-3">
-                  <Preview />
-                </div>
-                <p className={`text-sm font-semibold leading-tight ${selected ? "text-blue-700" : "text-slate-800"}`}>
-                  {label}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">{desc}</p>
-              </button>
-            );
-          })}
+                  <div className="w-16 h-20 mb-3 mt-1">
+                    <Preview />
+                  </div>
+                  <p className={`text-sm font-semibold leading-tight ${selected ? "text-blue-700" : "text-slate-800"}`}>
+                    {label}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">{desc}</p>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Lugar de firma */}
+        {/* Localización */}
         <div className="space-y-2">
           <p className="text-sm font-medium text-slate-700">¿Desde dónde firmas?</p>
           <p className="text-xs text-slate-400">Aparecerá como localización en el sello del documento</p>
           <LugarSelector value={lugar} onChange={setLugar} />
         </div>
 
+        {/* Nombre del perfil */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">Nombre del perfil</p>
+          <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && nombre.trim() && goNext("save")}
+            placeholder="Mi firma, Aprobación, Gerencia…"
+            className="w-full rounded-xl border-2 border-slate-200 focus:border-blue-400 px-4 py-3 text-sm font-medium focus:outline-none transition-colors placeholder:font-normal" />
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span>Vista previa:</span>
+            <span className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-medium">
+              {nombre.trim() || "Mi firma"}
+            </span>
+          </div>
+        </div>
+
         <div className="flex gap-3">
-          <button onClick={() => goBack("cert-verified")}
+          <button onClick={() => goBack("verification")}
             className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-1.5 transition-colors">
             <ArrowLeft size={14} /> Atrás
           </button>
-          <button onClick={() => goNext("name")}
-            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm">
+          <button
+            onClick={() => { if (nombre.trim()) { loadDefaultFolder(); goNext("save"); } }}
+            disabled={!nombre.trim()}
+            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-sm">
             Continuar <ArrowRight size={14} />
           </button>
         </div>
@@ -705,124 +754,106 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
     </AnimatePresence>
   );
 
-  // ── Paso 6: Carpeta de destino ───────────────────────────────────────────────
-  if (step === "save-folder") {
-    async function elegirCarpeta() {
-      const selected = await openDialog({ directory: true, multiple: false });
-      if (selected && typeof selected === "string") setCarpetaDestino(selected);
-    }
-
-    return (
-      <AnimatePresence custom={dir} mode="wait">
-        <motion.div key="save-folder" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
-          transition={{ duration: 0.2 }} className="max-w-md mx-auto space-y-5">
-
-          <StepBar current={stepIdx} />
-          <div>
-            <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 6 de 6</p>
-            <h2 className="text-xl font-bold text-slate-800">¿Dónde guardar tus documentos firmados?</h2>
-            <p className="text-sm text-slate-400 mt-1">
-              Cada vez que firmes, el PDF firmado se guardará en esta carpeta.
-            </p>
-          </div>
-
-          {/* Selector de carpeta */}
-          {carpetaDestino ? (
-            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3 px-4 py-3.5 bg-green-50 border border-green-200 rounded-xl">
-              <FolderCheck size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-green-700 mb-0.5">Carpeta seleccionada</p>
-                <p className="text-sm text-green-800 break-all font-mono">{carpetaDestino}</p>
-              </div>
-              <button onClick={() => setCarpetaDestino("")}
-                className="text-green-400 hover:text-green-600 flex-shrink-0 mt-0.5 transition-colors">
-                <X size={14} />
-              </button>
-            </motion.div>
-          ) : (
-            <button onClick={elegirCarpeta}
-              className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-400 hover:bg-blue-50/50 transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
-                <FolderOpen size={22} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-slate-700 group-hover:text-blue-700 transition-colors">
-                  Elegir carpeta
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Selecciona dónde se guardarán los documentos firmados
-                </p>
-              </div>
-            </button>
-          )}
-
-          {/* Nota informativa */}
-          <div className="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed space-y-1">
-            {carpetaDestino ? (
-              <>
-                <p className="font-medium text-slate-700">Vista previa de destino:</p>
-                <p className="font-mono text-slate-600 break-all">{carpetaDestino}/Penké Firmas/</p>
-                <p className="text-slate-400">El archivo firmado se llamará <span className="font-mono">nombre_penke.pdf</span></p>
-              </>
-            ) : (
-              <>
-                <span className="font-medium text-slate-700">Si omites este paso,</span> los documentos firmados
-                se guardarán en <span className="font-mono">Documentos/Penké Firmas/</span> con el sufijo{" "}
-                <span className="font-mono">_penke.pdf</span>.
-              </>
-            )}
-          </div>
-
-          <div className="flex gap-3 pt-1">
-            <button onClick={() => goBack("name")}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-1.5 transition-colors">
-              <ArrowLeft size={14} /> Atrás
-            </button>
-            <button onClick={saveToDone}
-              className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm">
-              {carpetaDestino ? "Guardar y continuar" : "Omitir y finalizar"} <ArrowRight size={14} />
-            </button>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-    );
+  // ── Etapa 4: Guardado ─────────────────────────────────────────────────────────
+  async function elegirCarpeta() {
+    const selected = await openDialog({ directory: true, multiple: false });
+    if (selected && typeof selected === "string") setCarpetaDestino(selected);
   }
 
-  // ── Paso 5: Nombre del perfil ────────────────────────────────────────────────
+  const displayFolder = carpetaDestino || defaultFolder;
+
   return (
     <AnimatePresence custom={dir} mode="wait">
-      <motion.div key="name" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
+      <motion.div key="save" custom={dir} variants={slide} initial="enter" animate="center" exit="exit"
         transition={{ duration: 0.2 }} className="max-w-md mx-auto space-y-5">
 
         <StepBar current={stepIdx} />
         <div>
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Paso 5 de 6</p>
-          <h2 className="text-xl font-bold text-slate-800">Nombra tu perfil</h2>
-          <p className="text-sm text-slate-400 mt-1">Usa algo que identifique el propósito de esta firma</p>
+          <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Etapa 4 de 4</p>
+          <h2 className="text-xl font-bold text-slate-800">¿Dónde guardar tus documentos firmados?</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Cada vez que firmes, el PDF firmado se guardará aquí.
+          </p>
         </div>
 
-        <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && nombre.trim() && goNext("save-folder")}
-          placeholder="Mi firma, Aprobación, Gerencia…"
-          autoFocus
-          className="w-full rounded-xl border-2 border-slate-200 focus:border-blue-400 px-4 py-3.5 text-base font-medium focus:outline-none transition-colors placeholder:font-normal" />
+        {/* Opciones de carpeta */}
+        <div className="space-y-3">
+          {/* Opción 1: carpeta predeterminada */}
+          <button
+            onClick={() => setCarpetaDestino("")}
+            className={[
+              "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all",
+              !carpetaDestino
+                ? "border-blue-400 bg-blue-50"
+                : "border-slate-200 hover:border-slate-300",
+            ].join(" ")}
+          >
+            <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${!carpetaDestino ? "border-blue-500 bg-blue-500" : "border-slate-300"}`}>
+              {!carpetaDestino && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+            </div>
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${!carpetaDestino ? "text-blue-700" : "text-slate-700"}`}>
+                Guardar en Documentos
+              </p>
+              <p className="text-xs text-slate-400 font-mono truncate mt-0.5">
+                {defaultFolder ? `${defaultFolder}/Penké Firmas` : "Documentos/Penké Firmas"}
+              </p>
+            </div>
+          </button>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span>Vista previa:</span>
-          <span className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-medium">
-            {nombre.trim() || "Mi firma"}
-          </span>
+          {/* Opción 2: elegir carpeta */}
+          <button
+            onClick={elegirCarpeta}
+            className={[
+              "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all",
+              carpetaDestino
+                ? "border-blue-400 bg-blue-50"
+                : "border-slate-200 hover:border-slate-300",
+            ].join(" ")}
+          >
+            <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${carpetaDestino ? "border-blue-500 bg-blue-500" : "border-slate-300"}`}>
+              {carpetaDestino && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`text-sm font-semibold ${carpetaDestino ? "text-blue-700" : "text-slate-700"}`}>
+                Elegir otra carpeta
+              </p>
+              {carpetaDestino ? (
+                <p className="text-xs text-slate-600 font-mono truncate mt-0.5">{carpetaDestino}/Penké Firmas</p>
+              ) : (
+                <p className="text-xs text-slate-400 mt-0.5">Seleccionar ubicación personalizada</p>
+              )}
+            </div>
+            {carpetaDestino && (
+              <button onClick={(e) => { e.stopPropagation(); setCarpetaDestino(""); }}
+                className="text-slate-400 hover:text-red-400 flex-shrink-0 transition-colors">
+                <X size={14} />
+              </button>
+            )}
+          </button>
         </div>
 
-        <div className="flex gap-3 pt-2">
-          <button onClick={() => goBack("settings")}
+        {/* Resumen previo */}
+        <div className="bg-slate-50 rounded-xl border border-slate-100 p-4 space-y-2 text-xs">
+          <p className="font-medium text-slate-700">Resumen del perfil:</p>
+          <div className="space-y-1 text-slate-500">
+            <p><span className="font-medium text-slate-600">Nombre:</span> {nombre.trim() || "Mi firma"}</p>
+            <p><span className="font-medium text-slate-600">Certificado:</span> {certInfo?.titular || "—"}</p>
+            <p><span className="font-medium text-slate-600">Sello:</span> {estampado || "Sin sello"}</p>
+            <p><span className="font-medium text-slate-600">Destino:</span>{" "}
+              <span className="font-mono">{displayFolder ? `${displayFolder}/Penké Firmas` : "Documentos/Penké Firmas"}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button onClick={() => goBack("preferences")}
             className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-1.5 transition-colors">
             <ArrowLeft size={14} /> Atrás
           </button>
-          <button onClick={() => nombre.trim() && goNext("save-folder")} disabled={!nombre.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-sm">
-            Continuar <ArrowRight size={14} />
+          <button onClick={saveAndFinish}
+            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm">
+            Crear perfil <ArrowRight size={14} />
           </button>
         </div>
       </motion.div>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar }          from "./components/Sidebar";
 import { ToastProvider }    from "./components/Toast";
 import { OnboardingFlow }   from "./components/OnboardingFlow";
+import { HomePage }         from "./pages/HomePage";
 import { FirmarPage }       from "./pages/FirmarPage";
 import { VerificarPage }    from "./pages/VerificarPage";
 import { ValidarPage }      from "./pages/ValidarPage";
@@ -21,7 +22,7 @@ function AnimatedRoutes() {
         transition={{ duration: 0.16 }}
       >
         <Routes location={location}>
-          <Route path="/"          element={<Navigate to="/firmar" replace />} />
+          <Route path="/"          element={<HomePage />} />
           <Route path="/firmar"    element={<FirmarPage />} />
           <Route path="/verificar" element={<VerificarPage />} />
           <Route path="/validar"   element={<ValidarPage />} />

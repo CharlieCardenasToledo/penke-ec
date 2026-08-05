@@ -147,7 +147,12 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
     setStampPdf({ pagina: currentPage, x: px, y: py });
   }, [positioning, currentPage]);
 
-  // ── Teclado ───────────────────────────────────────────────────────────────────
+  // ── Foco al montar y teclado ──────────────────────────────────────────────────
+  useEffect(() => {
+    const closeBtn = document.getElementById("pdf-viewer-close");
+    closeBtn?.focus();
+  }, []);
+
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if (e.key === "Escape")         onClose();
@@ -174,12 +179,15 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pdf-viewer-title"
         className="fixed inset-0 z-50 flex flex-col"
         style={{ background: "rgba(15,23,42,0.97)", backdropFilter: "blur(4px)" }}
       >
         {/* ── Toolbar ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-5 h-12 border-b border-white/10 flex-shrink-0 gap-3">
-          <p className="text-sm font-medium text-white/80 truncate min-w-0" title={ruta}>
+          <p id="pdf-viewer-title" className="text-sm font-medium text-white/80 truncate min-w-0" title={ruta}>
             {fileName}
           </p>
 
@@ -202,14 +210,14 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
             {/* Zoom */}
             <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-1">
               <button onClick={() => setScale((s) => +(Math.max(s - 0.2, 0.5)).toFixed(1))}
-                className="p-1.5 text-white/60 hover:text-white transition-colors" title="Alejar (-)">
+                aria-label="Alejar" className="p-1.5 text-white/60 hover:text-white transition-colors">
                 <ZoomOut size={14} />
               </button>
-              <span className="text-xs text-white/50 w-10 text-center select-none">
+              <span className="text-xs text-white/50 w-10 text-center select-none" aria-live="polite">
                 {Math.round(scale * 100)}%
               </span>
               <button onClick={() => setScale((s) => +(Math.min(s + 0.2, 3)).toFixed(1))}
-                className="p-1.5 text-white/60 hover:text-white transition-colors" title="Acercar (+)">
+                aria-label="Acercar" className="p-1.5 text-white/60 hover:text-white transition-colors">
                 <ZoomIn size={14} />
               </button>
             </div>
@@ -219,20 +227,26 @@ export function PdfViewerModal({ ruta, onClose, onConfirmPosition, initialStamp 
               <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-1">
                 <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 text-white/60 hover:text-white disabled:opacity-25 transition-colors" title="Anterior (←)">
+                  aria-label="Página anterior"
+                  className="p-1.5 text-white/60 hover:text-white disabled:opacity-25 transition-colors">
                   <ChevronLeft size={14} />
                 </button>
-                <span className="text-xs text-white/50 px-2 select-none">{currentPage} / {totalPages}</span>
+                <span className="text-xs text-white/50 px-2 select-none" aria-live="polite">
+                  {currentPage} / {totalPages}
+                </span>
                 <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 text-white/60 hover:text-white disabled:opacity-25 transition-colors" title="Siguiente (→)">
+                  aria-label="Página siguiente"
+                  className="p-1.5 text-white/60 hover:text-white disabled:opacity-25 transition-colors">
                   <ChevronRight size={14} />
                 </button>
               </div>
             )}
 
             <button onClick={onClose}
-              className="p-1.5 text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors ml-1" title="Cerrar (Esc)">
+              id="pdf-viewer-close"
+              aria-label="Cerrar visor de PDF"
+              className="p-1.5 text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors ml-1">
               <X size={16} />
             </button>
           </div>
