@@ -21,15 +21,27 @@ import { useLocalStorage }       from "../hooks/useLocalStorage";
 import { sessionStore }          from "../hooks/useSessionStore";
 import { useHistory }            from "../hooks/useHistory";
 import { usePresets, claveStoreKey, type Preset } from "../hooks/usePresets";
-import { api, type FirmarResponse, type TokenInfo } from "../lib/api";
+import { api, ApiError, type FirmarResponse, type TokenInfo } from "../lib/api";
 
 type Estampado = "QR" | "Simple" | "Avanzada" | "";
 type ViewMode  = "profiles" | "new-profile" | "edit-profile" | "sign";
 interface StampPos { pagina: number; puntoX: number; puntoY: number; }
 
-function traducirErrorFirma(raw: string): string {
+function traducirErrorFirma(e: unknown): string {
+  if (e instanceof ApiError && e.code) {
+    switch (e.code) {
+      case "CERT_LOAD_FAILED":              return "Contraseña incorrecta. Verifica la clave de tu certificado.";
+      case "DOCUMENT_NOT_FOUND":            return "No se encontró el archivo. Verifica que siga en la misma ubicación.";
+      case "OUTPUT_DIRECTORY_NOT_WRITABLE": return "No se puede escribir en la carpeta de destino. Verifica los permisos.";
+      case "OUTPUT_DIRECTORY_CREATE_FAILED":return "No se pudo crear la carpeta de destino. Verifica los permisos.";
+      case "OUTPUT_WRITE_FAILED":           return "Error al guardar el archivo firmado. El disco podría estar lleno.";
+      case "SIGNED_BYTES_EMPTY":            return "El proceso de firma no generó datos. Verifica el certificado y el PDF.";
+      case "MISSING_FIELD":                 return e.message;
+    }
+  }
+  const raw = e instanceof Error ? e.message : String(e);
   const r = raw.toLowerCase();
-  if (r.includes("password") || r.includes("clave") || r.includes("mac check") || r.includes("wrong password") || r.includes("incorrect"))
+  if (r.includes("password") || r.includes("mac check") || r.includes("wrong password") || r.includes("incorrect"))
     return "Contraseña incorrecta. Verifica la clave de tu certificado.";
   if (r.includes("ocsp") || r.includes("revoc") || r.includes("revoked"))
     return "Tu certificado fue revocado. Contacta a tu entidad certificadora.";
@@ -628,8 +640,7 @@ function SignSection({ profile, onBack, onUpdateProfile }: {
         fecha: new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }),
       });
     } catch (e: unknown) {
-      const raw = e instanceof Error ? e.message : String(e);
-      const msg = traducirErrorFirma(raw);
+      const msg = traducirErrorFirma(e);
       setError(msg); toast(msg, "error");
     } finally { setSigning(false); }
   }
@@ -689,58 +700,6 @@ function SignSection({ profile, onBack, onUpdateProfile }: {
   async function abrirArchivo(ruta: string) {
     try { await openPath(ruta); }
     catch { toast("No se pudo abrir el archivo. Verifica que la ruta siga existiendo.", "error"); }
-  }
-
-  // Vista: seleccionar carpeta (perfil sin carpeta configurada)
-  if (!profile.carpetaBaseUsuario && onUpdateProfile) {
-    async function elegirCarpetaYContinuar() {
-      const selected = await openDialog({ directory: true, multiple: false });
-      if (selected && typeof selected === "string") {
-        onUpdateProfile!({ carpetaBaseUsuario: selected });
-      }
-    }
-
-    return (
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="max-w-md mx-auto space-y-5 py-8">
-        <button onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
-          <ArrowLeft size={15} /> Mis perfiles
-        </button>
-
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <FolderOpen size={20} className="text-amber-600" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-amber-800">Falta la carpeta de destino</h2>
-              <p className="text-sm text-amber-700 mt-1">
-                Este perfil fue creado sin carpeta configurada. Elige dónde guardar los documentos firmados antes de continuar.
-              </p>
-            </div>
-          </div>
-
-          <button onClick={elegirCarpetaYContinuar}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 border-dashed border-amber-300 hover:border-blue-400 hover:bg-blue-50 bg-white transition-all group">
-            <FolderOpen size={22} className="text-amber-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
-            <div className="text-left">
-              <p className="text-sm font-semibold text-slate-700 group-hover:text-blue-700 transition-colors">
-                Elegir carpeta de destino
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Los archivos irán a <span className="font-mono">carpeta seleccionada/Penké Firmas/</span>
-              </p>
-            </div>
-            <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-500 ml-auto flex-shrink-0 transition-colors" />
-          </button>
-        </div>
-
-        <p className="text-xs text-center text-slate-400">
-          También puedes editar el perfil desde la pantalla de mis firmas.
-        </p>
-      </motion.div>
-    );
   }
 
   // Vista éxito
@@ -918,6 +877,24 @@ function SignSection({ profile, onBack, onUpdateProfile }: {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Aviso de carpeta de destino */}
+      {!profile.carpetaBaseUsuario && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
+          <FolderOpen size={13} className="text-amber-500 flex-shrink-0" />
+          <span>Sin carpeta configurada — los archivos irán a <span className="font-mono">Documentos/Penké Firmas/</span></span>
+          {onUpdateProfile && (
+            <button
+              onClick={async () => {
+                const selected = await openDialog({ directory: true, multiple: false });
+                if (selected && typeof selected === "string") onUpdateProfile({ carpetaBaseUsuario: selected });
+              }}
+              className="ml-auto text-amber-600 hover:text-amber-800 font-medium whitespace-nowrap underline">
+              Cambiar
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Contraseña */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">

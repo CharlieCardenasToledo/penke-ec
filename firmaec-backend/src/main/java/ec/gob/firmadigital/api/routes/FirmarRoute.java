@@ -159,7 +159,11 @@ public class FirmarRoute implements Handler {
         Path temporal = rutaSalida.getParent().resolve(rutaSalida.getFileName() + ".tmp");
         try {
             Files.write(temporal, firmado);
-            Files.move(temporal, rutaSalida, StandardCopyOption.ATOMIC_MOVE);
+            try {
+                Files.move(temporal, rutaSalida, StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(temporal, rutaSalida, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Exception e) {
             try { Files.deleteIfExists(temporal); } catch (Exception ignored) {}
             ctx.status(500).json(Map.of(

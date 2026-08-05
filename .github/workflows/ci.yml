@@ -27,7 +27,15 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Build Java backend
-        run: mvn -f firmaec-backend/pom.xml clean package -q
-      - name: Verify JAR exists
-        run: test -f firmaec-backend/target/firmaec-backend.jar
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build Java backend (instala firmador y compila)
+        run: npm run build:backend
+      - name: Verificar JAR generado
+        run: |
+          test -f src-tauri/resources/firmaec-backend.jar
+          ls -lh src-tauri/resources/firmaec-backend.jar

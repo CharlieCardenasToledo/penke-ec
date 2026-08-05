@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 
 export interface Preset {
@@ -38,6 +39,14 @@ export function usePresets() {
   const [presets, setPresets] = useLocalStorage<Preset[]>("firmaec.presets", []);
 
   const migratedPresets = presets.map(migratePreset);
+
+  // Persistir la migración la primera vez que se detecte un perfil con esquema antiguo
+  useEffect(() => {
+    if (presets.some((p) => !p.schemaVersion || p.schemaVersion < 2)) {
+      setPresets((prev) => prev.map(migratePreset));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function savePreset(p: Omit<Preset, "id">) {
     const id = Date.now().toString();

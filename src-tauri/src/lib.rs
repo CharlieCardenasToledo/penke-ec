@@ -4,6 +4,7 @@ use std::time::Duration;
 use tauri::{Manager, State};
 
 const BACKEND_VERSION: &str = "1.0.1";
+const BACKEND_BUILD_ID: &str = "2026-08-05";
 const BACKEND_API_VERSION: u32 = 2;
 
 #[tauri::command]
@@ -195,9 +196,10 @@ fn wait_for_backend(timeout_ms: u64) -> bool {
 fn necesita_reiniciar() -> bool {
     match version_backend_actual() {
         Some(info) => {
-            let version_ok = info.version == BACKEND_VERSION;
-            let api_ok = info.api_version == BACKEND_API_VERSION;
-            if version_ok && api_ok {
+            let version_ok  = info.version    == BACKEND_VERSION;
+            let build_ok    = info.build_id   == BACKEND_BUILD_ID;
+            let api_ok      = info.api_version == BACKEND_API_VERSION;
+            if version_ok && build_ok && api_ok {
                 println!(
                     "Backend v{} (buildId={}, apiVersion={}) ya corriendo y actualizado.",
                     info.version, info.build_id, info.api_version
@@ -205,8 +207,9 @@ fn necesita_reiniciar() -> bool {
                 false
             } else {
                 println!(
-                    "Backend activo (v{}, apiVersion={}) != esperado (v{}, apiVersion={}). Reiniciando.",
-                    info.version, info.api_version, BACKEND_VERSION, BACKEND_API_VERSION
+                    "Backend activo (v{}, buildId={}, apiVersion={}) != esperado (v{}, buildId={}, apiVersion={}). Reiniciando.",
+                    info.version, info.build_id, info.api_version,
+                    BACKEND_VERSION, BACKEND_BUILD_ID, BACKEND_API_VERSION
                 );
                 true
             }
@@ -265,10 +268,33 @@ pub fn run() {
             *state.0.lock().unwrap() = Some(child);
 
             std::thread::spawn(|| {
-                if wait_for_backend(20000) {
-                    println!("Backend listo en :8765");
-                } else {
-                    eprintln!("Advertencia: backend no respondió en 20s");
+                if !wait_for_backend(20000) {
+                    eprintln!("ADVERTENCIA: backend no respondió en 20s");
+                    return;
+                }
+                println!("Backend listo en :8765");
+                match version_backend_actual() {
+                    Some(info)
+                        if info.version    == BACKEND_VERSION
+                        && info.build_id   == BACKEND_BUILD_ID
+                        && info.api_version == BACKEND_API_VERSION =>
+                    {
+                        println!(
+                            "Versión verificada: v{} buildId={} apiVersion={}",
+                            info.version, info.build_id, info.api_version
+                        );
+                    }
+                    Some(info) => {
+                        eprintln!(
+                            "ADVERTENCIA: backend arrancó pero con versión incorrecta: \
+                             v{} buildId={} apiVersion={}. Se esperaba v{} buildId={} apiVersion={}.",
+                            info.version, info.build_id, info.api_version,
+                            BACKEND_VERSION, BACKEND_BUILD_ID, BACKEND_API_VERSION
+                        );
+                    }
+                    None => {
+                        eprintln!("ADVERTENCIA: backend arrancó pero no respondió al check de versión");
+                    }
                 }
             });
 

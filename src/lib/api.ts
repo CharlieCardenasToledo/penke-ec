@@ -1,13 +1,26 @@
 const BASE = "http://localhost:8765";
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly code?: string, public readonly path?: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   const text = await res.text();
   let data: Record<string, unknown>;
-  try { data = JSON.parse(text); } catch { throw new Error(text || `Error HTTP ${res.status}`); }
-  if (!res.ok) throw new Error((data.error as string) ?? "Error desconocido");
+  try { data = JSON.parse(text); } catch { throw new ApiError(text || `Error HTTP ${res.status}`); }
+  if (!res.ok) {
+    throw new ApiError(
+      (data.error as string) ?? "Error desconocido",
+      data.code as string | undefined,
+      data.path as string | undefined
+    );
+  }
   return data as T;
 }
 
@@ -15,8 +28,13 @@ async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
   const text = await res.text();
   let data: Record<string, unknown>;
-  try { data = JSON.parse(text); } catch { throw new Error(text || `Error HTTP ${res.status}`); }
-  if (!res.ok) throw new Error((data.error as string) ?? "Error desconocido");
+  try { data = JSON.parse(text); } catch { throw new ApiError(text || `Error HTTP ${res.status}`); }
+  if (!res.ok) {
+    throw new ApiError(
+      (data.error as string) ?? "Error desconocido",
+      data.code as string | undefined
+    );
+  }
   return data as T;
 }
 

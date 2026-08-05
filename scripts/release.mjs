@@ -33,6 +33,7 @@ if (bump === "major") nextVersion = `${major + 1}.0.0`;
 else if (bump === "minor") nextVersion = `${major}.${minor + 1}.0`;
 else nextVersion = `${major}.${minor}.${patch + 1}`;
 
+const today = new Date().toISOString().slice(0, 10);
 console.log(`\n  Penké EC  ${pkg.version}  →  ${nextVersion}\n`);
 
 // ── 1. package.json ──────────────────────────────────────────────────────────
@@ -67,18 +68,31 @@ lib = lib.replace(
 writeFileSync(libPath, lib);
 console.log("  ✓ src-tauri/src/lib.rs (BACKEND_VERSION)");
 
-// ── 5. BackendServer.java — /version endpoint ────────────────────────────────
-const javaPath = "firmaec-backend/src/main/java/ec/gob/firmadigital/api/BackendServer.java";
-let java = readFileSync(javaPath, "utf8");
-java = java.replace(
-  /ctx\.result\("[\d.]+"\)\)/,
-  `ctx.result("${nextVersion}"))`
+// ── 5. BuildInfo.java — VERSION + BUILD_ID ──────────────────────────────────
+const buildInfoPath = "firmaec-backend/src/main/java/ec/gob/firmadigital/api/BuildInfo.java";
+let buildInfo = readFileSync(buildInfoPath, "utf8");
+buildInfo = buildInfo.replace(
+  /VERSION\s*=\s*"[\d.]+"/,
+  `VERSION = "${nextVersion}"`
 );
-writeFileSync(javaPath, java);
-console.log("  ✓ BackendServer.java (/version endpoint)");
+buildInfo = buildInfo.replace(
+  /BUILD_ID\s*=\s*"[\d-]+"/,
+  `BUILD_ID = "${today}"`
+);
+writeFileSync(buildInfoPath, buildInfo);
+console.log("  ✓ BuildInfo.java (VERSION + BUILD_ID)");
 
-// ── 6. CHANGELOG.md ─────────────────────────────────────────────────────────
-const today = new Date().toISOString().slice(0, 10);
+// ── 6. firmaec-backend/pom.xml — versión Maven ──────────────────────────────
+const pomPath = "firmaec-backend/pom.xml";
+let pom = readFileSync(pomPath, "utf8");
+pom = pom.replace(
+  /(<artifactId>firmaec-backend<\/artifactId>\s*<version>)[\d.]+(<\/version>)/,
+  `$1${nextVersion}$2`
+);
+writeFileSync(pomPath, pom);
+console.log("  ✓ firmaec-backend/pom.xml");
+
+// ── 7. CHANGELOG.md ─────────────────────────────────────────────────────────
 const changelogPath = "CHANGELOG.md";
 let changelog = readFileSync(changelogPath, "utf8");
 const newEntry = `## [${nextVersion}] — ${today}\n\n> Describe los cambios de esta versión aquí antes de hacer el release.\n\n`;
@@ -87,7 +101,7 @@ writeFileSync(changelogPath, changelog);
 console.log("  ✓ CHANGELOG.md (edita la entrada antes del push)\n");
 
 // ── 7. Git commit + tag ──────────────────────────────────────────────────────
-execSync(`git add package.json ${tauriPath} ${cargoPath} ${libPath} ${javaPath} ${changelogPath}`);
+execSync(`git add package.json ${tauriPath} ${cargoPath} ${libPath} ${buildInfoPath} ${pomPath} ${changelogPath}`);
 execSync(`git commit -m "chore: release v${nextVersion}"`);
 execSync(`git tag v${nextVersion}`);
 console.log(`  ✓ commit + tag v${nextVersion} creados\n`);
