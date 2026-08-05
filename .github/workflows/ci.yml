@@ -39,3 +39,20 @@ jobs:
         run: |
           test -f src-tauri/resources/firmaec-backend.jar
           ls -lh src-tauri/resources/firmaec-backend.jar
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Instalar dependencias del sistema (Tauri en Linux)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf
+      - name: cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml

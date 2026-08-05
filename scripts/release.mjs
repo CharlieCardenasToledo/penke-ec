@@ -17,6 +17,11 @@
 import { readFileSync, writeFileSync } from "fs";
 import { execSync } from "child_process";
 
+function replaceOrFail(content, pattern, replacement, label) {
+  if (!pattern.test(content)) throw new Error(`No se encontró el patrón a reemplazar en: ${label}`);
+  return content.replace(pattern, replacement);
+}
+
 // ── Argumentos ──────────────────────────────────────────────────────────────
 const bump = process.argv[2];
 if (!["patch", "minor", "major"].includes(bump)) {
@@ -58,26 +63,34 @@ cargo = cargo.replace(
 writeFileSync(cargoPath, cargo);
 console.log("  ✓ src-tauri/Cargo.toml");
 
-// ── 4. lib.rs — BACKEND_VERSION ─────────────────────────────────────────────
+// ── 4. lib.rs — BACKEND_VERSION + BACKEND_BUILD_ID ─────────────────────────
 const libPath = "src-tauri/src/lib.rs";
 let lib = readFileSync(libPath, "utf8");
-lib = lib.replace(
+lib = replaceOrFail(lib,
   /const BACKEND_VERSION:\s*&str\s*=\s*"[\d.]+";/,
-  `const BACKEND_VERSION: &str = "${nextVersion}";`
+  `const BACKEND_VERSION: &str = "${nextVersion}";`,
+  "lib.rs BACKEND_VERSION"
+);
+lib = replaceOrFail(lib,
+  /const BACKEND_BUILD_ID:\s*&str\s*=\s*"[^"]+";/,
+  `const BACKEND_BUILD_ID: &str = "${today}";`,
+  "lib.rs BACKEND_BUILD_ID"
 );
 writeFileSync(libPath, lib);
-console.log("  ✓ src-tauri/src/lib.rs (BACKEND_VERSION)");
+console.log("  ✓ src-tauri/src/lib.rs (BACKEND_VERSION + BACKEND_BUILD_ID)");
 
 // ── 5. BuildInfo.java — VERSION + BUILD_ID ──────────────────────────────────
 const buildInfoPath = "firmaec-backend/src/main/java/ec/gob/firmadigital/api/BuildInfo.java";
 let buildInfo = readFileSync(buildInfoPath, "utf8");
-buildInfo = buildInfo.replace(
+buildInfo = replaceOrFail(buildInfo,
   /VERSION\s*=\s*"[\d.]+"/,
-  `VERSION = "${nextVersion}"`
+  `VERSION = "${nextVersion}"`,
+  "BuildInfo.java VERSION"
 );
-buildInfo = buildInfo.replace(
+buildInfo = replaceOrFail(buildInfo,
   /BUILD_ID\s*=\s*"[\d-]+"/,
-  `BUILD_ID = "${today}"`
+  `BUILD_ID = "${today}"`,
+  "BuildInfo.java BUILD_ID"
 );
 writeFileSync(buildInfoPath, buildInfo);
 console.log("  ✓ BuildInfo.java (VERSION + BUILD_ID)");
@@ -85,9 +98,10 @@ console.log("  ✓ BuildInfo.java (VERSION + BUILD_ID)");
 // ── 6. firmaec-backend/pom.xml — versión Maven ──────────────────────────────
 const pomPath = "firmaec-backend/pom.xml";
 let pom = readFileSync(pomPath, "utf8");
-pom = pom.replace(
+pom = replaceOrFail(pom,
   /(<artifactId>firmaec-backend<\/artifactId>\s*<version>)[\d.]+(<\/version>)/,
-  `$1${nextVersion}$2`
+  `$1${nextVersion}$2`,
+  "firmaec-backend/pom.xml version"
 );
 writeFileSync(pomPath, pom);
 console.log("  ✓ firmaec-backend/pom.xml");

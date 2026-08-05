@@ -267,16 +267,17 @@ pub fn run() {
             let state: State<JavaProcess> = app.state();
             *state.0.lock().unwrap() = Some(child);
 
-            std::thread::spawn(|| {
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
                 if !wait_for_backend(20000) {
-                    eprintln!("ADVERTENCIA: backend no respondió en 20s");
+                    eprintln!("CRÍTICO: backend no respondió en 20s");
                     return;
                 }
                 println!("Backend listo en :8765");
                 match version_backend_actual() {
-                    Some(info)
-                        if info.version    == BACKEND_VERSION
-                        && info.build_id   == BACKEND_BUILD_ID
+                    Some(ref info)
+                        if info.version     == BACKEND_VERSION
+                        && info.build_id    == BACKEND_BUILD_ID
                         && info.api_version == BACKEND_API_VERSION =>
                     {
                         println!(
@@ -286,11 +287,16 @@ pub fn run() {
                     }
                     Some(info) => {
                         eprintln!(
-                            "ADVERTENCIA: backend arrancó pero con versión incorrecta: \
-                             v{} buildId={} apiVersion={}. Se esperaba v{} buildId={} apiVersion={}.",
+                            "CRÍTICO: backend incompatible — v{} buildId={} apiVersion={} \
+                             (se esperaba v{} buildId={} apiVersion={}). Terminando proceso.",
                             info.version, info.build_id, info.api_version,
                             BACKEND_VERSION, BACKEND_BUILD_ID, BACKEND_API_VERSION
                         );
+                        let state: tauri::State<JavaProcess> = app_handle.state();
+                        if let Some(mut child) = state.0.lock().unwrap().take() {
+                            let _ = child.kill();
+                            let _ = std::fs::remove_file(pid_file());
+                        };
                     }
                     None => {
                         eprintln!("ADVERTENCIA: backend arrancó pero no respondió al check de versión");

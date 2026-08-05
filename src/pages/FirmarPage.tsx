@@ -660,8 +660,7 @@ function SignSection({ profile, onBack, onUpdateProfile }: {
           firmante: res.firmante, fecha: new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }),
         });
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "error", errorMsg: msg } : f));
+        setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "error", errorMsg: traducirErrorFirma(e) } : f));
       }
     }
     setBatchDone(true);

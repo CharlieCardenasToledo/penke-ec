@@ -6,6 +6,7 @@ import {
   Search, Check, RefreshCw, User, Plus, FolderOpen, FolderCheck, X,
 } from "lucide-react";
 import imagotipo from "../assets/penke-imagotipo.svg";
+import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { DropZone } from "./DropZone";
 import { LugarSelector } from "./LugarSelector";
@@ -350,8 +351,15 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
     };
   }
 
-  function saveToDone() {
-    setSaved(buildProfile());
+  async function saveToDone() {
+    let profile = buildProfile();
+    if (!profile.carpetaBaseUsuario) {
+      try {
+        const docs = await invoke<string>("carpeta_penke_defecto");
+        if (docs) profile = { ...profile, carpetaBaseUsuario: docs };
+      } catch { /* continuar sin carpeta — el backend usará Documents como fallback */ }
+    }
+    setSaved(profile);
     goNext("done");
   }
 
