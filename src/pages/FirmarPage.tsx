@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { open as openShell }  from "@tauri-apps/plugin-shell";
+import { openPath }           from "@tauri-apps/plugin-opener";
 import { dirname }            from "@tauri-apps/api/path";
 import { invoke }             from "@tauri-apps/api/core";
 import {
@@ -469,11 +469,11 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
   function firmarOtro() { setDoc(""); setStampPos(null); setResult(null); setSigned(false); setError(""); }
 
   async function abrirCarpeta(ruta: string) {
-    try { await openShell(await dirname(ruta)); } catch { /* ignorar */ }
+    try { await openPath(await dirname(ruta)); } catch { /* ignorar */ }
   }
 
   async function abrirArchivo(ruta: string) {
-    try { await openShell(ruta); } catch { /* ignorar */ }
+    try { await openPath(ruta); } catch { /* ignorar */ }
   }
 
   // Vista éxito
