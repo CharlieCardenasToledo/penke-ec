@@ -1,0 +1,37 @@
+name: Sugerencia de mejora
+description: Tienes una idea para mejorar Penké EC
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Las sugerencias son bienvenidas! Cuéntanos qué mejoraría tu experiencia firmando documentos.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: ¿Qué problema resuelve tu sugerencia?
+      description: Describe la situación que te genera frustración o que podría ser mejor.
+      placeholder: Cuando firmo muchos documentos, tengo que...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: ¿Qué solución propones?
+      description: Describe cómo te imaginas que debería funcionar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: ¿Has considerado otras alternativas?
+      description: Opcional — si ya intentaste resolver esto de otra manera, cuéntanos.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Capturas de pantalla, referencias, o cualquier detalle extra.

@@ -1,0 +1,72 @@
+name: Reporte de error
+description: Algo no funciona como debería
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tomarte el tiempo de reportar un error. Mientras más detalle incluyas, más rápido podemos solucionarlo.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: ¿Qué pasó?
+      description: Describe el error con el mayor detalle posible.
+      placeholder: Al intentar firmar un documento, la aplicación muestra...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: ¿Cómo podemos ver el error nosotros también?
+      value: |
+        1. Abrir la aplicación
+        2. Ir a...
+        3. Hacer clic en...
+        4. Ver el error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ¿Qué esperabas que pasara?
+      placeholder: Que el documento se firmara correctamente.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Penké EC
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema operativo
+      placeholder: "Windows 11 Pro 22H2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cert_type
+    attributes:
+      label: Tipo de certificado
+      options:
+        - Archivo (.p12 / .pfx)
+        - Token USB (HSM)
+        - No aplica
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Registros de error (si los hay)
+      description: Puedes encontrarlos en Herramientas de desarrollador (F12 → Consola) o en los logs de Tauri.
+      render: shell
