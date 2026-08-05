@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar }          from "./components/Sidebar";
 import { ToastProvider }    from "./components/Toast";
@@ -33,13 +33,21 @@ function AnimatedRoutes() {
 }
 
 function AppShell() {
+  const navigate = useNavigate();
   const { presets, savePreset } = usePresets();
   const [onboarding, setOnboarding] = useState(presets.length === 0);
+  const [pendingSign, setPendingSign] = useState(false);
 
-  // Si el usuario borra todos los perfiles, vuelve al onboarding
   useEffect(() => {
     if (presets.length === 0) setOnboarding(true);
   }, [presets.length]);
+
+  useEffect(() => {
+    if (!onboarding && pendingSign && presets.length > 0) {
+      setPendingSign(false);
+      navigate("/firmar");
+    }
+  }, [onboarding, pendingSign, presets.length, navigate]);
 
   if (onboarding) {
     return (
@@ -47,6 +55,7 @@ function AppShell() {
         <OnboardingFlow
           onComplete={(p) => { savePreset(p); setOnboarding(false); }}
           onAddAnother={(p) => savePreset(p)}
+          onCompleteAndSign={(p) => { savePreset(p); setOnboarding(false); setPendingSign(true); }}
         />
       </div>
     );

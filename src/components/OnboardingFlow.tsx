@@ -25,8 +25,9 @@ const STEP_INDEX: Partial<Record<Step, number>> = {
 };
 
 interface Props {
-  onComplete:    (p: Omit<Preset, "id">) => void;
-  onAddAnother?: (p: Omit<Preset, "id">) => void;
+  onComplete:          (p: Omit<Preset, "id">) => void;
+  onAddAnother?:       (p: Omit<Preset, "id">) => void;
+  onCompleteAndSign?:  (p: Omit<Preset, "id">) => void;
 }
 
 function parseCN(dn: string): string {
@@ -141,7 +142,6 @@ export function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }
 }) {
   const days = Math.ceil((new Date(validoHasta).getTime() - Date.now()) / 86400000);
   const isValid  = days > 0;
-  const barColor = days > 180 ? "#4ade80" : days > 30 ? "#facc15" : "#f87171";
   const dotColor = days > 180 ? "bg-green-400" : days > 30 ? "bg-yellow-400" : "bg-red-400";
   const badge    = days > 180
     ? "bg-green-500/20 text-green-300"
@@ -198,12 +198,6 @@ export function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }
               {formatRemaining(days)}
             </p>
           </div>
-          <div className="h-1 bg-white/15 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ backgroundColor: barColor, width: isValid ? "60%" : "0%" }}
-            />
-          </div>
           <p className="text-[10px] text-blue-400 text-right">
             {isValid ? `${days} días restantes` : "Renovación requerida"}
           </p>
@@ -241,7 +235,7 @@ const STAMP_OPTIONS: { value: Estampado; label: string; desc: string; recommende
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
+export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: Props) {
   const [step, setStep] = useState<Step>("welcome");
   const [dir,  setDir]  = useState(1);
 
@@ -448,7 +442,11 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
 
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
           className="flex flex-col gap-3 pt-2">
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => saved && onComplete(saved)}
+          <motion.button whileTap={{ scale: 0.97 }}
+            onClick={() => {
+              if (!saved) return;
+              if (onCompleteAndSign) { onCompleteAndSign(saved); } else { onComplete(saved); }
+            }}
             className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md transition-colors">
             Firmar mi primer documento <ArrowRight size={16} />
           </motion.button>
@@ -802,35 +800,38 @@ export function OnboardingFlow({ onComplete, onAddAnother }: Props) {
           </button>
 
           {/* Opción 2: elegir carpeta */}
-          <button
-            onClick={elegirCarpeta}
-            className={[
-              "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all",
-              carpetaDestino
-                ? "border-blue-400 bg-blue-50"
-                : "border-slate-200 hover:border-slate-300",
-            ].join(" ")}
-          >
-            <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${carpetaDestino ? "border-blue-500 bg-blue-500" : "border-slate-300"}`}>
-              {carpetaDestino && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className={`text-sm font-semibold ${carpetaDestino ? "text-blue-700" : "text-slate-700"}`}>
-                Elegir otra carpeta
-              </p>
-              {carpetaDestino ? (
+          {carpetaDestino ? (
+            <div className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-blue-400 bg-blue-50">
+              <div className="w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 flex-shrink-0 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-blue-700">Elegir otra carpeta</p>
                 <p className="text-xs text-slate-600 font-mono truncate mt-0.5">{carpetaDestino}/Penké Firmas</p>
-              ) : (
-                <p className="text-xs text-slate-400 mt-0.5">Seleccionar ubicación personalizada</p>
-              )}
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button onClick={elegirCarpeta}
+                  className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors">
+                  Cambiar
+                </button>
+                <button onClick={() => setCarpetaDestino("")}
+                  className="p-1 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-50 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
             </div>
-            {carpetaDestino && (
-              <button onClick={(e) => { e.stopPropagation(); setCarpetaDestino(""); }}
-                className="text-slate-400 hover:text-red-400 flex-shrink-0 transition-colors">
-                <X size={14} />
-              </button>
-            )}
-          </button>
+          ) : (
+            <button
+              onClick={elegirCarpeta}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 text-left transition-all"
+            >
+              <div className="w-4 h-4 rounded-full border-2 border-slate-300 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-700">Elegir otra carpeta</p>
+                <p className="text-xs text-slate-400 mt-0.5">Seleccionar ubicación personalizada</p>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Resumen previo */}

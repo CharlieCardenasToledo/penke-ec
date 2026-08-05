@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft, Lock, CheckCircle2, Circle, AlertCircle, Loader2,
 } from "lucide-react";
-import { api, type FirmarResponse } from "../../lib/api";
+import { api } from "../../lib/api";
 import { traducirErrorFirma } from "../../lib/errors";
+import type { SignResult } from "./SignWizard";
 import { claveStoreKey, type Preset } from "../../hooks/usePresets";
 import { sessionStore } from "../../hooks/useSessionStore";
 import { useHistory } from "../../hooks/useHistory";
@@ -22,7 +23,7 @@ interface Props {
   setBatchFiles: React.Dispatch<React.SetStateAction<BatchFile[]>>;
   stampPos: StampPos | null;
   onBack: () => void;
-  onDone: (result: FirmarResponse) => void;
+  onDone: (result: SignResult) => void;
 }
 
 function Req({ ok, label }: { ok: boolean; label: string }) {
@@ -97,7 +98,7 @@ export function StepReview({
         firmante: res.firmante,
         fecha: new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }),
       });
-      onDone(res);
+      onDone({ kind: "single", response: res });
     } catch (e) {
       const msg = traducirErrorFirma(e);
       setError(msg); toast(msg, "error");
@@ -109,30 +110,36 @@ export function StepReview({
     const pending = batchFiles.filter((f) => f.status === "pending");
     if (pending.length === 0) return;
     setSigning(true); setError("");
-    let doneCount = 0; let errCount = 0;
+    const completedFiles: BatchFile[] = [];
+    const failedFiles: BatchFile[] = [];
     for (const file of pending) {
       setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "signing" } : f));
       try {
         const res = await api.firmar(buildRequest(file.ruta));
-        setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "done", rutaFirmado: res.rutaFirmado } : f));
+        const doneFile: BatchFile = { ...file, status: "done", rutaFirmado: res.rutaFirmado };
+        completedFiles.push(doneFile);
+        setBatchFiles((prev) => prev.map((f) => f.id === file.id ? doneFile : f));
         addEntry({
           ruta: res.rutaFirmado,
           nombre: res.rutaFirmado.split(/[\\/]/).pop() ?? res.rutaFirmado,
           firmante: res.firmante,
           fecha: new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }),
         });
-        doneCount++;
       } catch (e) {
-        setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "error", errorMsg: traducirErrorFirma(e) } : f));
-        errCount++;
+        const errFile: BatchFile = { ...file, status: "error", errorMsg: traducirErrorFirma(e) };
+        failedFiles.push(errFile);
+        setBatchFiles((prev) => prev.map((f) => f.id === file.id ? errFile : f));
       }
     }
     setSigning(false);
     const total = pending.length;
+    const errCount = failedFiles.length;
+    const doneCount = completedFiles.length;
     const msg = errCount > 0
       ? `${doneCount} de ${total} firmados · ${errCount} con error${errCount > 1 ? "es" : ""}`
       : `${doneCount} de ${total} firmados correctamente`;
     toast(msg, errCount > 0 ? "error" : "success");
+    onDone({ kind: "batch", completed: completedFiles, failed: failedFiles, outputFolder });
   }
 
   return (
@@ -189,7 +196,7 @@ export function StepReview({
         <div className="pt-3 border-t border-slate-100 space-y-1.5">
           <Req ok={reqDoc}    label={batchMode ? `${batchFiles.filter((f) => f.status === "pending").length} documentos en cola` : "Documento seleccionado"} />
           <Req ok={reqCert}   label="Certificado cargado" />
-          <Req ok={reqFolder} label="Carpeta de destino disponible" />
+          <Req ok={true} label={profile.carpetaBaseUsuario ? "Carpeta personalizada configurada" : "Usando carpeta predeterminada"} />
           <Req ok={reqClave}  label={tipoFirma === "token" ? "PIN del token ingresado" : "Contraseña del certificado ingresada"} />
         </div>
       </div>

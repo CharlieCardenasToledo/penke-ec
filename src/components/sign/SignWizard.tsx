@@ -10,6 +10,10 @@ import type { FirmarResponse } from "../../lib/api";
 
 export interface StampPos { pagina: number; puntoX: number; puntoY: number; }
 
+export type SignResult =
+  | { kind: "single"; response: FirmarResponse }
+  | { kind: "batch"; completed: BatchFile[]; failed: BatchFile[]; outputFolder: string };
+
 type WizardStep = "document" | "appearance" | "review" | "result";
 
 const slideVariants = {
@@ -18,9 +22,10 @@ const slideVariants = {
   exit: { opacity: 0, x: -24 },
 };
 
-export function SignWizard({ profile, onBack }: {
+export function SignWizard({ profile, onBack, initialDocument = "" }: {
   profile: Preset;
   onBack: () => void;
+  initialDocument?: string;
 }) {
   const hasStamp = !!profile.estampado;
   const steps: WizardStep[] = hasStamp
@@ -30,11 +35,11 @@ export function SignWizard({ profile, onBack }: {
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = steps[stepIndex];
 
-  const [doc,        setDoc]        = useState("");
+  const [doc,        setDoc]        = useState(initialDocument);
   const [batchFiles, setBatchFiles] = useState<BatchFile[]>([]);
   const [batchMode,  setBatchMode]  = useState(false);
   const [stampPos,   setStampPos]   = useState<StampPos | null>(null);
-  const [result,     setResult]     = useState<FirmarResponse | null>(null);
+  const [result,     setResult]     = useState<SignResult | null>(null);
 
   function goNext() { setStepIndex((i) => Math.min(i + 1, steps.length - 1)); }
   function goBack() {

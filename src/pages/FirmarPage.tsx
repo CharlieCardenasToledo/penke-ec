@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
   KeyRound, HardDrive, Lock, SlidersHorizontal, Bookmark, Trash2, FolderOpen,
@@ -519,9 +520,32 @@ function EditProfileForm({ profile, onSave, onCancel }: {
 // ─── FirmarPage (main export) ─────────────────────────────────────────────────
 export function FirmarPage() {
   const { presets, savePreset, deletePreset, updatePreset } = usePresets();
+  const location = useLocation();
+  const [initialDoc, setInitialDoc] = useState("");
+  const consumedState = useRef(false);
   const [view, setView] = useState<ViewMode>("profiles");
   const [activeProfile,  setActiveProfile]  = useState<Preset | null>(null);
   const [editingProfile, setEditingProfile] = useState<Preset | null>(null);
+
+  useEffect(() => {
+    if (consumedState.current || !location.state) return;
+    consumedState.current = true;
+    const { profileId, doc: stateDoc, action } = (location.state ?? {}) as {
+      profileId?: string; doc?: string; action?: string;
+    };
+    if (action === "new") { setView("new-profile"); return; }
+    if (!profileId) return;
+    const profile = presets.find((p) => p.id === profileId);
+    if (!profile) return;
+    if (action === "edit") {
+      setEditingProfile(profile);
+      setView("edit-profile");
+    } else {
+      setActiveProfile(profile);
+      setInitialDoc(stateDoc ?? "");
+      setView("sign");
+    }
+  }, [presets, location.state]);
 
   if (view === "new-profile") {
     return (
@@ -552,6 +576,7 @@ export function FirmarPage() {
       <SignWizard
         profile={activeProfile}
         onBack={() => { setActiveProfile(null); setView("profiles"); }}
+        initialDocument={initialDoc}
       />
     );
   }

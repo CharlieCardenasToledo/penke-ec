@@ -134,7 +134,7 @@ export function HomePage() {
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mis perfiles</p>
             <button
-              onClick={() => navigate("/firmar")}
+              onClick={() => navigate("/firmar", { state: { action: "new" } })}
               className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 transition-colors"
             >
               <Plus size={11} /> Nuevo perfil
@@ -146,7 +146,7 @@ export function HomePage() {
                 key={p.id}
                 profile={p}
                 onSelect={() => { selectProfile(p); navigate("/firmar", { state: { profileId: p.id } }); }}
-                onEdit={() => navigate("/firmar")}
+                onEdit={() => navigate("/firmar", { state: { action: "edit", profileId: p.id } })}
                 onDelete={() => deletePreset(p.id)}
                 onDuplicate={() => savePreset({ ...p, nombre: `${p.nombre} (copia)`, id: undefined } as any)}
               />
