@@ -40,17 +40,18 @@ public class FirmarRoute implements Handler {
     public void handle(Context ctx) throws Exception {
         Map<String, Object> body = mapper.readValue(ctx.body(), Map.class);
 
-        String rutaDocumento = str(body, "rutaDocumento", null);
-        String rutaCert      = str(body, "rutaCertificado", null);
-        String clave         = str(body, "clave", null);
-        String tipoFirma     = str(body, "tipoFirma", "archivo");
+        String rutaDocumento  = str(body, "rutaDocumento", null);
+        String rutaCert       = str(body, "rutaCertificado", null);
+        String clave          = str(body, "clave", null);
+        String tipoFirma      = str(body, "tipoFirma", "archivo");
         String requestedAlias = str(body, "alias", null);
-        String estampado     = str(body, "estampado", null);
-        String razonFirma    = str(body, "razonFirma", "");
-        String localizacion  = str(body, "localizacion", "");
-        int    pagina        = num(body, "pagina", 1);
-        int    puntoX        = num(body, "puntoX", 0);
-        int    puntoY        = num(body, "puntoY", 0);
+        String estampado      = str(body, "estampado", null);
+        String razonFirma     = str(body, "razonFirma", "");
+        String localizacion   = str(body, "localizacion", "");
+        String carpetaDestino = str(body, "carpetaDestino", null);
+        int    pagina         = num(body, "pagina", 1);
+        int    puntoX         = num(body, "puntoX", 0);
+        int    puntoY         = num(body, "puntoY", 0);
 
         if (rutaDocumento == null) {
             ctx.status(400).json(Map.of("error", "Falta campo obligatorio: rutaDocumento"));
@@ -111,8 +112,23 @@ public class FirmarRoute implements Handler {
             return;
         }
 
-        String rutaFirmado = FileUtils.crearNombreFirmado(doc,
-            FileUtils.getExtension(FileUtils.fileConvertToByteArray(doc)));
+        // Construir nombre de salida: {stem}_penke.pdf
+        String nombreOriginal = doc.getName();
+        String stem = nombreOriginal.contains(".")
+            ? nombreOriginal.substring(0, nombreOriginal.lastIndexOf('.'))
+            : nombreOriginal;
+        String nombreFirmado = stem + "_penke.pdf";
+
+        // Carpeta de destino: la indicada o la misma del documento original
+        java.nio.file.Path carpeta;
+        if (carpetaDestino != null && !carpetaDestino.isBlank()) {
+            carpeta = java.nio.file.Paths.get(carpetaDestino);
+        } else {
+            carpeta = doc.toPath().getParent();
+        }
+        java.nio.file.Files.createDirectories(carpeta);
+
+        String rutaFirmado = carpeta.resolve(nombreFirmado).toString();
         FileUtils.saveByteArrayToDisc(firmado, rutaFirmado);
 
         DatosUsuario datos = CertEcUtils.getDatosUsuarios(cert);

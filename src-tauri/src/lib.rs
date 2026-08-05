@@ -4,6 +4,15 @@ use std::time::Duration;
 use tauri::{Manager, State};
 
 #[tauri::command]
+fn carpeta_penke_defecto() -> Result<String, String> {
+    let docs = dirs::document_dir()
+        .ok_or_else(|| "No se pudo obtener la carpeta Documentos".to_string())?;
+    let destino = docs.join("Firmas Penké");
+    std::fs::create_dir_all(&destino).map_err(|e| e.to_string())?;
+    Ok(destino.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn leer_archivo_base64(ruta: String) -> Result<String, String> {
     use std::io::Read;
     let mut file = std::fs::File::open(&ruta).map_err(|e| e.to_string())?;
@@ -87,7 +96,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![leer_archivo_base64])
+        .invoke_handler(tauri::generate_handler![leer_archivo_base64, carpeta_penke_defecto])
         .manage(JavaProcess(Mutex::new(None)))
         .setup(|app| {
             // Si el backend ya responde (hot-reload), no lanzar otro

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { open as openShell }  from "@tauri-apps/plugin-shell";
 import { dirname }            from "@tauri-apps/api/path";
+import { invoke }             from "@tauri-apps/api/core";
 import {
   PenLine, FileText, Files, KeyRound, HardDrive, Lock,
   Crosshair, SlidersHorizontal, Bookmark, Trash2, FolderOpen,
@@ -375,11 +376,17 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     return true;
   }
 
+  async function resolverCarpetaDestino(): Promise<string> {
+    if (profile.carpetaDestino) return profile.carpetaDestino;
+    return invoke<string>("carpeta_penke_defecto");
+  }
+
   async function firmar() {
     if (!doc) { setError("Selecciona el documento PDF."); return; }
     if (!validate()) return;
     setSigning(true); setSigned(false); setError(""); setResult(null);
     try {
+      const carpetaDestino = await resolverCarpetaDestino();
       const res = await api.firmar({
         rutaDocumento: doc,
         rutaCertificado: tipoFirma === "archivo" ? cert : undefined,
@@ -388,7 +395,7 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
         estampado: (profile.estampado as "QR" | "Simple" | "Avanzada") || undefined,
         razonFirma: profile.razon, localizacion: profile.lugar,
         pagina: stampPos?.pagina ?? 1, puntoX: stampPos?.puntoX ?? 0, puntoY: stampPos?.puntoY ?? 0,
-        carpetaDestino: profile.carpetaDestino || undefined,
+        carpetaDestino,
       });
       setResult(res); setSigned(true);
       toast(`Firmado por ${res.firmante}`, "success");
@@ -409,6 +416,7 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
     const pending = batchFiles.filter((f) => f.status === "pending");
     if (pending.length === 0) { setError("Agrega al menos un PDF al lote."); return; }
     setError(""); setBatchDone(false);
+    const carpetaDestino = await resolverCarpetaDestino();
     for (const file of pending) {
       setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "signing" } : f));
       try {
@@ -420,6 +428,7 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
           estampado: (profile.estampado as "QR" | "Simple" | "Avanzada") || undefined,
           razonFirma: profile.razon, localizacion: profile.lugar,
           pagina: 1, puntoX: 0, puntoY: 0,
+          carpetaDestino,
         });
         setBatchFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: "done", rutaFirmado: res.rutaFirmado } : f));
         addEntry({
