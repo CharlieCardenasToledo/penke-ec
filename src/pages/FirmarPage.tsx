@@ -29,6 +29,25 @@ type Estampado = "QR" | "Simple" | "Avanzada" | "";
 type ViewMode  = "profiles" | "new-profile" | "sign";
 interface StampPos { pagina: number; puntoX: number; puntoY: number; }
 
+function traducirErrorFirma(raw: string): string {
+  const r = raw.toLowerCase();
+  if (r.includes("password") || r.includes("clave") || r.includes("mac check") || r.includes("wrong password") || r.includes("incorrect"))
+    return "Contraseña incorrecta. Verifica la clave de tu certificado.";
+  if (r.includes("ocsp") || r.includes("revoc") || r.includes("revoked"))
+    return "Tu certificado fue revocado. Contacta a tu entidad certificadora.";
+  if (r.includes("expired") || r.includes("caducado") || r.includes("not valid"))
+    return "Tu certificado está vencido. Renuévalo en tu entidad certificadora.";
+  if (r.includes("no encontrado") || r.includes("not found") || r.includes("no such file"))
+    return "No se encontró el archivo. Verifica que siga en la misma ubicación.";
+  if (r.includes("token") || r.includes("keystore") || r.includes("pkcs11"))
+    return "No se pudo acceder al Token USB. Verifica que esté conectado y desbloqueado.";
+  if (r.includes("network") || r.includes("connect") || r.includes("timeout"))
+    return "Sin conexión a internet. Penké necesita validar tu certificado en línea.";
+  if (r.includes("pdf") || r.includes("invalid") || r.includes("corrupt"))
+    return "El PDF parece estar dañado o protegido. Prueba con otro archivo.";
+  return "Ocurrió un error al firmar. Intenta de nuevo o reinicia la aplicación.";
+}
+
 // ─── Helper puro ──────────────────────────────────────────────────────────────
 function certStatus(validoHasta?: string) {
   if (!validoHasta) return { dot: "bg-slate-300", text: "Sin validar" };
@@ -406,7 +425,8 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
         fecha: new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }),
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const raw = e instanceof Error ? e.message : String(e);
+      const msg = traducirErrorFirma(raw);
       setError(msg); toast(msg, "error");
     } finally { setSigning(false); }
   }
@@ -469,11 +489,13 @@ function SignSection({ profile, onBack }: { profile: Preset; onBack: () => void 
   function firmarOtro() { setDoc(""); setStampPos(null); setResult(null); setSigned(false); setError(""); }
 
   async function abrirCarpeta(ruta: string) {
-    try { await openPath(await dirname(ruta)); } catch { /* ignorar */ }
+    try { await openPath(await dirname(ruta)); }
+    catch { toast("No se pudo abrir la carpeta. Verifica que la ruta siga existiendo.", "error"); }
   }
 
   async function abrirArchivo(ruta: string) {
-    try { await openPath(ruta); } catch { /* ignorar */ }
+    try { await openPath(ruta); }
+    catch { toast("No se pudo abrir el archivo. Verifica que la ruta siga existiendo.", "error"); }
   }
 
   // Vista éxito
