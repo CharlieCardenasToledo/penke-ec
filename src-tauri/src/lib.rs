@@ -3,6 +3,42 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{Manager, State};
 
+// ── Almacén seguro: genera/recupera la clave maestra del vault Stronghold ─────
+
+/// Devuelve una clave hex de 64 chars (256 bits) estable por dispositivo/usuario.
+/// Se genera aleatoriamente la primera vez y se persiste en app_data_dir.
+#[tauri::command]
+fn get_vault_key(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("app_data_dir: {e}"))?;
+
+    std::fs::create_dir_all(&data_dir)
+        .map_err(|e| format!("crear directorio: {e}"))?;
+
+    let key_path = data_dir.join(".vault-key");
+
+    if key_path.exists() {
+        let key = std::fs::read_to_string(&key_path)
+            .map_err(|e| format!("leer vault-key: {e}"))?;
+        return Ok(key.trim().to_string());
+    }
+
+    // Primera ejecución: generar clave aleatoria y persistirla
+    use rand::Rng;
+    let bytes: Vec<u8> = rand::thread_rng()
+        .sample_iter(&rand::distributions::Standard)
+        .take(32)
+        .collect();
+    let key: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+
+    std::fs::write(&key_path, &key)
+        .map_err(|e| format!("guardar vault-key: {e}"))?;
+
+    Ok(key)
+}
+
 const BACKEND_VERSION: &str = "1.0.1";
 const BACKEND_BUILD_ID: &str = "2026-08-05";
 const BACKEND_API_VERSION: u32 = 2;
@@ -233,7 +269,19 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![leer_archivo_base64, carpeta_penke_defecto, verificar_archivo])
+        .plugin(
+            tauri_plugin_stronghold::Builder::new(|password| {
+                use sha2::{Digest, Sha256};
+                let mut h = Sha256::new();
+                h.update(password);
+                h.finalize().to_vec()
+            })
+            .build(),
+        )
+        .invoke_handler(tauri::generate_handler![
+            leer_archivo_base64, carpeta_penke_defecto, verificar_archivo,
+            get_vault_key,
+        ])
         .manage(JavaProcess(Mutex::new(None)))
         .setup(|app| {
             if backend_responde() && !necesita_reiniciar() {

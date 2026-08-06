@@ -11,8 +11,9 @@ import {
 import { DropZone }              from "../components/DropZone";
 import { LugarSelector }         from "../components/LugarSelector";
 import { toast }                 from "../components/Toast";
-import { usePresets, type Preset } from "../hooks/usePresets";
+import { usePresets, claveStoreKey, type Preset } from "../hooks/usePresets";
 import { api, type TokenInfo } from "../lib/api";
+import { secureStore } from "../lib/secureStore";
 import { certStatus } from "../lib/certUtils";
 import { SignWizard } from "../components/sign/SignWizard";
 
@@ -616,7 +617,10 @@ export function FirmarPage() {
               <ProfileCard
                 profile={p}
                 onSelect={() => { setActiveProfile(p); setView("sign"); }}
-                onDelete={() => deletePreset(p.id)}
+                onDelete={() => {
+                  secureStore.remove(claveStoreKey(p.cert));
+                  deletePreset(p.id);
+                }}
                 onEdit={() => { setEditingProfile(p); setView("edit-profile"); }}
               />
             </motion.div>

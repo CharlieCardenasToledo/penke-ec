@@ -13,6 +13,7 @@ import { LugarSelector } from "./LugarSelector";
 import { api, type TokenInfo } from "../lib/api";
 import { sessionStore } from "../hooks/useSessionStore";
 import { claveStoreKey, type Preset } from "../hooks/usePresets";
+import { secureStore } from "../lib/secureStore";
 
 type Estampado = "QR" | "Simple" | "Avanzada" | "";
 type Step = "welcome" | "identity" | "verification" | "preferences" | "save" | "done";
@@ -297,10 +298,10 @@ export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: 
         validoHasta: res.validoHasta,
         emisor:      res.emisor  ? parseCN(res.emisor) : undefined,
       });
-      // Guardar contraseña: en sesión siempre; en localStorage solo si el usuario lo pidió
+      // Guardar contraseña: en sesión siempre; en Stronghold si el usuario lo pidió
       sessionStore.set(claveStoreKey(cert), clave);
       if (recordarClave) {
-        localStorage.setItem(claveStoreKey(cert), clave);
+        secureStore.set(claveStoreKey(cert), clave);
       }
       goNext("verification");
     } catch (e) {

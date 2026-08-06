@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, Lock, CheckCircle2, Circle, AlertCircle,
+  ArrowLeft, Lock, CheckCircle2, Circle, AlertCircle, ShieldCheck, Trash2,
 } from "lucide-react";
 import { Button } from "../ui";
 import { api } from "../../lib/api";
 import { traducirErrorFirma } from "../../lib/errors";
 import type { SignResult } from "./SignWizard";
-import { type Preset } from "../../hooks/usePresets";
+import { claveStoreKey, type Preset } from "../../hooks/usePresets";
 import { sessionStore } from "../../hooks/useSessionStore";
+import { secureStore } from "../../lib/secureStore";
 import { useHistory } from "../../hooks/useHistory";
 import { toast } from "../Toast";
 import { SignProgress } from "../SignProgress";
@@ -46,14 +47,36 @@ export function StepReview({
   const tokenAlias = profile.tokenAlias ?? "";
   const { addEntry } = useHistory();
 
-  const [clave,   setClave]   = useState(() => sessionStore.get("firmaec.clave") ?? "");
-  const [signing, setSigning] = useState(false);
-  const [error,   setError]   = useState("");
-  const claveRef = useRef<HTMLInputElement>(null);
+  const [clave,        setClave]       = useState(() => sessionStore.get("firmaec.clave") ?? "");
+  const [savedInVault, setSavedInVault] = useState(false);
+  const [signing,      setSigning]     = useState(false);
+  const [error,        setError]       = useState("");
+  const claveRef   = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { headingRef.current?.focus(); }, []);
 
   useEffect(() => { sessionStore.set("firmaec.clave", clave); }, [clave]);
+
+  // Pre-llenar desde Stronghold si la sesión está vacía y el perfil tiene "recordarClave"
+  useEffect(() => {
+    if (clave || tipoFirma === "token" || !profile.recordarClave) return;
+    secureStore.get(claveStoreKey(cert)).then((stored) => {
+      if (stored) {
+        setClave(stored);
+        sessionStore.set("firmaec.clave", stored);
+        setSavedInVault(true);
+      }
+    });
+  // Solo al montar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function forgetPassword() {
+    await secureStore.remove(claveStoreKey(cert));
+    setClave("");
+    sessionStore.clear("firmaec.clave");
+    setSavedInVault(false);
+  }
 
   const outputName = doc
     ? `${doc.split(/[\\/]/).pop()?.replace(/\.pdf$/i, "").replace(/_penke$/i, "")}_penke.pdf`
@@ -200,14 +223,27 @@ export function StepReview({
 
       {/* Contraseña */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2 mb-3">
-          <Lock size={12} /> {tipoFirma === "token" ? "PIN del Token" : "Contraseña del certificado"}
-        </label>
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+            <Lock size={12} /> {tipoFirma === "token" ? "PIN del Token" : "Contraseña del certificado"}
+          </label>
+          {savedInVault && (
+            <span className="flex items-center gap-1 text-[11px] text-green-600">
+              <ShieldCheck size={11} /> Guardada
+              <button
+                onClick={forgetPassword}
+                title="Olvidar contraseña guardada"
+                className="ml-1 flex items-center gap-0.5 text-slate-400 hover:text-red-500 transition-colors">
+                <Trash2 size={10} /> Olvidar
+              </button>
+            </span>
+          )}
+        </div>
         <input
           ref={claveRef}
           type="password"
           value={clave}
-          onChange={(e) => setClave(e.target.value)}
+          onChange={(e) => { setClave(e.target.value); setSavedInVault(false); }}
           onKeyDown={(e) => e.key === "Enter" && (batchMode ? firmarLote() : firmar())}
           placeholder={tipoFirma === "token" ? "PIN…" : "Contraseña…"}
           disabled={signing}
