@@ -2,15 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Crosshair, RotateCcw } from "lucide-react";
 import { Button } from "../ui";
 import { PdfViewerModal, type Corner } from "../PdfViewerModal";
+import { CORNER_LABELS } from "../../lib/stampGeometry";
 import type { Preset } from "../../hooks/usePresets";
 import type { StampPos } from "./SignWizard";
-
-const CORNER_LABELS: Record<Corner, string> = {
-  BR: "Inferior derecha",
-  BL: "Inferior izquierda",
-  TR: "Superior derecha",
-  TL: "Superior izquierda",
-};
 
 interface Props {
   profile: Preset;

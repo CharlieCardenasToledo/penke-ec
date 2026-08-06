@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { invoke } from "@tauri-apps/api/core";
+import { DEFAULT_STAMP_W_PT as STAMP_W_PT, DEFAULT_STAMP_H_PT as STAMP_H_PT } from "../lib/stampGeometry";
 
 // Worker inline para Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url
 ).toString();
-
-// Calibrado inspeccionando /Rect de un PDF firmado con FirmaEC 5.1.0 (anclaje LOWER_LEFT)
-const STAMP_W_PT = 110;
-const STAMP_H_PT = 36;
 
 interface Props {
   rutaDocumento: string;
