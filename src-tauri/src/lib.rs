@@ -6,26 +6,49 @@ use tauri::{Manager, State};
 // ── Almacén seguro: genera/recupera la clave maestra del vault Stronghold ─────
 
 /// Devuelve una clave hex de 64 chars (256 bits) estable por dispositivo/usuario.
-/// Se genera aleatoriamente la primera vez y se persiste en app_data_dir.
+///
+/// Orden de búsqueda:
+///   1. Keychain del SO (Windows Credential Manager / macOS Keychain / Linux Secret Service)
+///   2. Archivo legado `.vault-key` → migra al keychain y borra el archivo
+///   3. Genera nueva clave, la guarda en el keychain; si falla, la persiste en archivo
 #[tauri::command]
 fn get_vault_key(app_handle: tauri::AppHandle) -> Result<String, String> {
+    const SERVICE: &str = "penke-ec";
+    const ACCOUNT: &str = "vault-key";
+
+    // 1. Intentar recuperar del keychain del SO
+    if let Ok(entry) = keyring::Entry::new(SERVICE, ACCOUNT) {
+        if let Ok(key) = entry.get_password() {
+            if !key.is_empty() {
+                return Ok(key);
+            }
+        }
+    }
+
     let data_dir = app_handle
         .path()
         .app_data_dir()
         .map_err(|e| format!("app_data_dir: {e}"))?;
 
-    std::fs::create_dir_all(&data_dir)
-        .map_err(|e| format!("crear directorio: {e}"))?;
-
     let key_path = data_dir.join(".vault-key");
 
+    // 2. Migrar desde archivo legado al keychain
     if key_path.exists() {
-        let key = std::fs::read_to_string(&key_path)
-            .map_err(|e| format!("leer vault-key: {e}"))?;
-        return Ok(key.trim().to_string());
+        let legacy = std::fs::read_to_string(&key_path)
+            .map_err(|e| format!("leer vault-key: {e}"))?
+            .trim()
+            .to_string();
+
+        if let Ok(entry) = keyring::Entry::new(SERVICE, ACCOUNT) {
+            if entry.set_password(&legacy).is_ok() {
+                let _ = std::fs::remove_file(&key_path); // ya está en el keychain
+            }
+        }
+
+        return Ok(legacy);
     }
 
-    // Primera ejecución: generar clave aleatoria y persistirla
+    // 3. Primera ejecución: generar clave aleatoria
     use rand::Rng;
     let bytes: Vec<u8> = rand::thread_rng()
         .sample_iter(&rand::distributions::Standard)
@@ -33,8 +56,17 @@ fn get_vault_key(app_handle: tauri::AppHandle) -> Result<String, String> {
         .collect();
     let key: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
 
-    std::fs::write(&key_path, &key)
-        .map_err(|e| format!("guardar vault-key: {e}"))?;
+    // Intentar guardar en keychain; si falla, usar archivo como respaldo
+    let in_keychain = keyring::Entry::new(SERVICE, ACCOUNT)
+        .map(|e| e.set_password(&key).is_ok())
+        .unwrap_or(false);
+
+    if !in_keychain {
+        std::fs::create_dir_all(&data_dir)
+            .map_err(|e| format!("crear directorio: {e}"))?;
+        std::fs::write(&key_path, &key)
+            .map_err(|e| format!("guardar vault-key: {e}"))?;
+    }
 
     Ok(key)
 }
