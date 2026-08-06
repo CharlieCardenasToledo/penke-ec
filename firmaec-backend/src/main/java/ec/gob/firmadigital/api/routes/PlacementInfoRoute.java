@@ -5,6 +5,7 @@ import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfReader;
+import ec.gob.firmadigital.api.StampGeometry;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 
@@ -22,11 +23,6 @@ import java.util.Map;
  * Response: { page, stamp, defaultPosition }
  */
 public class PlacementInfoRoute implements Handler {
-
-    // Calibrado inspeccionando /Rect de un PDF firmado con FirmaEC 5.1.0 (anclaje LOWER_LEFT).
-    private static final int STAMP_W_PT = 110;
-    private static final int STAMP_H_PT = 36;
-    private static final int MARGIN_PT  = 18;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -90,8 +86,8 @@ public class PlacementInfoRoute implements Handler {
         }
 
         // Posición por defecto: esquina inferior derecha con margen (lower-left).
-        int defaultLeft   = Math.round(boxRight - STAMP_W_PT - MARGIN_PT);
-        int defaultBottom = Math.round(boxBottom + MARGIN_PT);
+        int defaultLeft   = Math.round(boxRight - StampGeometry.WIDTH_PT - StampGeometry.MARGIN_PT);
+        int defaultBottom = Math.round(boxBottom + StampGeometry.MARGIN_PT);
 
         Map<String, Object> pageInfo = new HashMap<>();
         pageInfo.put("left",     boxLeft);
@@ -102,8 +98,8 @@ public class PlacementInfoRoute implements Handler {
         pageInfo.put("numPages", numPages);
 
         Map<String, Object> stampInfo = new HashMap<>();
-        stampInfo.put("widthPt",  STAMP_W_PT);
-        stampInfo.put("heightPt", STAMP_H_PT);
+        stampInfo.put("widthPt",  StampGeometry.WIDTH_PT);
+        stampInfo.put("heightPt", StampGeometry.HEIGHT_PT);
         // Anclaje LOWER_LEFT confirmado inspeccionando /Rect vs puntoX,puntoY de una firma real
         // anchor=LOWER_LEFT: el contrato con el frontend es lower-left.
         // La conversión a UPPER_LEFT para FirmaEC ocurre en FirmarRoute.

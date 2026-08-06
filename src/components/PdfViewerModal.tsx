@@ -150,7 +150,7 @@ export function PdfViewerModal({
       width:  Math.abs(cx1 - cx0),
       height: Math.abs(cy1 - cy0),
     };
-  }, [viewport, stampPdf, currentPage]);
+  }, [viewport, stampPdf, currentPage, stampW, stampH]);
 
   // ── Click en canvas: center→lower-left + clamping ────────────────────────────
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -191,7 +191,7 @@ export function PdfViewerModal({
     const [newPdfX, newPdfY] = viewport.convertToPdfPoint(startCx + deltaCx, startCy + deltaCy);
     const clamped = clampToPage(newPdfX, newPdfY, viewport.viewBox, stampW, stampH);
     setStampPdf((prev) => prev ? { ...prev, ...clamped } : prev);
-  }, [dragging, viewport]);
+  }, [dragging, viewport, stampW, stampH]);
 
   const handleDragEnd = useCallback(() => {
     if (dragging) { setDragging(false); dragStart.current = null; }
@@ -239,7 +239,7 @@ export function PdfViewerModal({
     }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose, totalPages, positioning, viewport, stampPdf]);
+  }, [onClose, totalPages, positioning, viewport, stampPdf, stampW, stampH]);
 
   // ── Trampa de foco ────────────────────────────────────────────────────────────
   useEffect(() => {

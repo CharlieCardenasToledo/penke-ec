@@ -3,6 +3,7 @@ package ec.gob.firmadigital.api.routes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.gob.firmadigital.api.BuildInfo;
 import ec.gob.firmadigital.api.OutputPathResolver;
+import ec.gob.firmadigital.api.StampGeometry;
 import ec.gob.firmadigital.cliente.FirmaDigital;
 import ec.gob.firmadigital.libreria.certificate.CertEcUtils;
 import ec.gob.firmadigital.libreria.certificate.CertUtils;
@@ -31,7 +32,9 @@ import java.nio.file.StandardCopyOption;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class FirmarRoute implements Handler {
 
@@ -108,6 +111,18 @@ public class FirmarRoute implements Handler {
         X509CertificateUtils validator = new X509CertificateUtils();
         validator.validarX509Certificate(cert, null, PropertiesUtils.versionBase64());
 
+        // Recoger nombres de campos Sig existentes ANTES de firmar para identificar el campo nuevo
+        Set<String> preExistingSigFields = new HashSet<>();
+        try (PdfDocument originalPdf = new PdfDocument(new PdfReader(rutaDocumento))) {
+            PdfAcroForm preForm = PdfAcroForm.getAcroForm(originalPdf, false);
+            if (preForm != null) {
+                for (Map.Entry<String, PdfFormField> e : preForm.getAllFormFields().entrySet()) {
+                    if (PdfName.Sig.equals(e.getValue().getFormType()))
+                        preExistingSigFields.add(e.getKey());
+                }
+            }
+        } catch (Exception ignored) {}
+
         File doc = new File(rutaDocumento);
         if (!doc.exists()) {
             ctx.status(400).json(Map.of(
@@ -142,16 +157,15 @@ public class FirmarRoute implements Handler {
                 float pageRight  = box.getRight();
                 float pageTop    = box.getTop();
 
-                int stampW = 110, stampH = 36;
                 boolean outOfBounds =
-                    stampLeft              < pageLeft   ||
-                    stampLeft   + stampW   > pageRight  ||
-                    stampBottom            < pageBottom ||
-                    stampBottom + stampH   > pageTop;
+                    stampLeft                               < pageLeft   ||
+                    stampLeft   + StampGeometry.WIDTH_PT   > pageRight  ||
+                    stampBottom                             < pageBottom ||
+                    stampBottom + StampGeometry.HEIGHT_PT  > pageTop;
 
                 if (outOfBounds) {
-                    int sugLeft   = (int) Math.max(pageLeft,  Math.min(pageRight  - stampW - 18, stampLeft));
-                    int sugBottom = (int) Math.max(pageBottom, Math.min(pageTop   - stampH - 18, stampBottom));
+                    int sugLeft   = (int) Math.max(pageLeft,  Math.min(pageRight  - StampGeometry.WIDTH_PT  - StampGeometry.MARGIN_PT, stampLeft));
+                    int sugBottom = (int) Math.max(pageBottom, Math.min(pageTop   - StampGeometry.HEIGHT_PT - StampGeometry.MARGIN_PT, stampBottom));
                     ctx.status(400).json(Map.of(
                         "code",            "STAMP_OUT_OF_BOUNDS",
                         "error",           "La firma quedaría parcialmente fuera de la página.",
@@ -166,7 +180,7 @@ public class FirmarRoute implements Handler {
         // FirmaEC interpreta Point(x, y) como (left, top) del sello en coords PDF.
         // El frontend siempre envía stampLeft/stampBottom (lower-left); convertimos aquí.
         int firmaEcX = stampLeft;
-        int firmaEcY = stampBottom + 36;  // bottom → top (altura del sello = 36 pt)
+        int firmaEcY = stampBottom + StampGeometry.HEIGHT_PT;  // bottom → top (UPPER_LEFT anchor)
 
         char[] password = (clave != null && !clave.isEmpty()) ? clave.toCharArray() : null;
         byte[] firmado = FirmaDigital.firmar(
@@ -253,16 +267,18 @@ public class FirmarRoute implements Handler {
         if (estampado != null && !estampado.isBlank()) {
             Map<String, Object> pu = new HashMap<>();
             pu.put("page",      pagina);
-            pu.put("left",      stampLeft);   // lower-left solicitado (fallback)
+            pu.put("left",      stampLeft);   // lower-left solicitado (fallback si no se encuentra el campo)
             pu.put("bottom",    stampBottom);
-            pu.put("widthPt",   110);
-            pu.put("heightPt",  36);
+            pu.put("widthPt",   StampGeometry.WIDTH_PT);
+            pu.put("heightPt",  StampGeometry.HEIGHT_PT);
             try (PdfDocument signedPdf = new PdfDocument(new PdfReader(rutaSalida.toString()))) {
                 PdfAcroForm form = PdfAcroForm.getAcroForm(signedPdf, false);
                 if (form != null) {
                     for (Map.Entry<String, PdfFormField> entry : form.getAllFormFields().entrySet()) {
                         PdfFormField field = entry.getValue();
                         if (!PdfName.Sig.equals(field.getFormType())) continue;
+                        // Saltar campos que ya existían antes de firmar
+                        if (preExistingSigFields.contains(entry.getKey())) continue;
                         PdfArray rect = field.getPdfObject().getAsArray(PdfName.Rect);
                         if (rect == null && !field.getWidgets().isEmpty())
                             rect = field.getWidgets().get(0).getRectangle();
@@ -281,6 +297,7 @@ public class FirmarRoute implements Handler {
                         pu.put("top",       aTop);
                         pu.put("widthPt",   aRight  - aLeft);
                         pu.put("heightPt",  aTop    - aBottom);
+                        break; // Solo el primer campo nuevo (el que acabamos de crear)
                     }
                 }
             } catch (Exception ignored) {}

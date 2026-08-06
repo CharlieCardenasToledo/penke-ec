@@ -100,8 +100,8 @@ export interface PlacementInfoResponse {
     type: string;
   };
   defaultPosition: {
-    x: number;
-    y: number;
+    left: number;
+    bottom: number;
   };
 }
 

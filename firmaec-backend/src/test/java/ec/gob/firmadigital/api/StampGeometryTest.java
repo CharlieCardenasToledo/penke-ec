@@ -18,9 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class StampGeometryTest {
 
-    // ── Constantes calibradas ────────────────────────────────────────────────
-    static final int STAMP_W = 110;
-    static final int STAMP_H = 36;
+    static final int STAMP_W = StampGeometry.WIDTH_PT;
+    static final int STAMP_H = StampGeometry.HEIGHT_PT;
 
     // ── Utilidades de geometría extraídas de FirmarRoute ────────────────────
 
