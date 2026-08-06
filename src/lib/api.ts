@@ -58,8 +58,11 @@ export interface FirmarRequest {
 
 export interface PlacementUsed {
   page: number;
-  x: number;
-  y: number;
+  /** Borde izquierdo real del sello en coords PDF (del /Rect inspeccionado post-firma) */
+  left: number;
+  bottom: number;
+  right?: number;
+  top?: number;
   widthPt: number;
   heightPt: number;
 }

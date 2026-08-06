@@ -11,7 +11,9 @@
     "build:backend": "node scripts/build-backend.mjs",
     "build:desktop": "npm run build:backend && npm run tauri build",
     "dev:desktop": "npm run build:backend && npm run tauri dev",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -33,6 +35,7 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^4.1.10"
   }
 }

@@ -13,8 +13,12 @@ import ec.gob.firmadigital.utils.PropertiesUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 
+import com.itextpdf.forms.PdfAcroForm;
+import com.itextpdf.forms.fields.PdfFormField;
 import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfArray;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfName;
 import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfReader;
 
@@ -245,14 +249,41 @@ public class FirmarRoute implements Handler {
         resp.put("cedula",         datos != null ? datos.getCedula() : "");
         resp.put("backendBuildId", BuildInfo.BUILD_ID);
 
-        // Posición solicitada (lower-left, coords PDF). No es el /Rect final — ver placementUsed TODO.
+        // Leer el /Rect real del campo de firma que acaba de crearse en el PDF
         if (estampado != null && !estampado.isBlank()) {
             Map<String, Object> pu = new HashMap<>();
             pu.put("page",      pagina);
-            pu.put("left",      stampLeft);
+            pu.put("left",      stampLeft);   // lower-left solicitado (fallback)
             pu.put("bottom",    stampBottom);
             pu.put("widthPt",   110);
             pu.put("heightPt",  36);
+            try (PdfDocument signedPdf = new PdfDocument(new PdfReader(rutaSalida.toString()))) {
+                PdfAcroForm form = PdfAcroForm.getAcroForm(signedPdf, false);
+                if (form != null) {
+                    for (Map.Entry<String, PdfFormField> entry : form.getAllFormFields().entrySet()) {
+                        PdfFormField field = entry.getValue();
+                        if (!PdfName.Sig.equals(field.getFormType())) continue;
+                        PdfArray rect = field.getPdfObject().getAsArray(PdfName.Rect);
+                        if (rect == null && !field.getWidgets().isEmpty())
+                            rect = field.getWidgets().get(0).getRectangle();
+                        if (rect == null || rect.size() < 4) continue;
+                        float ax1 = rect.getAsNumber(0).floatValue();
+                        float ay1 = rect.getAsNumber(1).floatValue();
+                        float ax2 = rect.getAsNumber(2).floatValue();
+                        float ay2 = rect.getAsNumber(3).floatValue();
+                        float aLeft   = Math.min(ax1, ax2);
+                        float aBottom = Math.min(ay1, ay2);
+                        float aRight  = Math.max(ax1, ax2);
+                        float aTop    = Math.max(ay1, ay2);
+                        pu.put("left",      aLeft);
+                        pu.put("bottom",    aBottom);
+                        pu.put("right",     aRight);
+                        pu.put("top",       aTop);
+                        pu.put("widthPt",   aRight  - aLeft);
+                        pu.put("heightPt",  aTop    - aBottom);
+                    }
+                }
+            } catch (Exception ignored) {}
             resp.put("placementUsed", pu);
         }
 

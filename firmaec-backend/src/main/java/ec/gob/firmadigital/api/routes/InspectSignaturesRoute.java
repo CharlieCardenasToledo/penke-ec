@@ -40,6 +40,10 @@ public class InspectSignaturesRoute implements Handler {
         Object v = body.get("rutaDocumento");
         String rutaDocumento = v != null ? v.toString() : null;
 
+        // Parámetros opcionales para auto-detección de anclaje
+        Double requestedLeft   = body.get("requestedLeft")   instanceof Number n ? n.doubleValue() : null;
+        Double requestedBottom = body.get("requestedBottom") instanceof Number n2 ? n2.doubleValue() : null;
+
         if (rutaDocumento == null) {
             ctx.status(400).json(Map.of("code", "MISSING_FIELD", "error", "Falta campo obligatorio: rutaDocumento"));
             return;
@@ -91,20 +95,40 @@ public class InspectSignaturesRoute implements Handler {
                         }
                     } catch (Exception ignored) {}
 
-                    // Sugerir interpretación del anclaje:
-                    // si /Rect lower-left ≈ puntoX,puntoY → LOWER_LEFT
-                    // si /Rect center ≈ puntoX,puntoY   → CENTER
-                    String anchorGuess = "desconocido — compara 'rect[0],rect[1]' con el puntoX,puntoY que enviaste";
+                    float cx = left + w / 2f;
+                    float cy = bottom + h / 2f;
+
+                    String anchorGuess;
+                    Double deltaX = null, deltaY = null;
+                    final double TOL = 1.5;
+                    if (requestedLeft != null && requestedBottom != null) {
+                        boolean matchLeft   = Math.abs(left   - requestedLeft)   < TOL;
+                        boolean matchBottom = Math.abs(bottom - requestedBottom) < TOL;
+                        boolean matchTop    = Math.abs(top    - requestedBottom) < TOL;
+                        boolean matchCxX    = Math.abs(cx     - requestedLeft)   < TOL;
+                        boolean matchCyY    = Math.abs(cy     - requestedBottom) < TOL;
+                        if      (matchLeft && matchTop)    anchorGuess = "UPPER_LEFT";
+                        else if (matchLeft && matchBottom) anchorGuess = "LOWER_LEFT";
+                        else if (matchCxX  && matchCyY)   anchorGuess = "CENTER";
+                        else anchorGuess = String.format(
+                                "UNKNOWN (dLeft=%.1f dBottom=%.1f dTop=%.1f)",
+                                left - requestedLeft, bottom - requestedBottom, top - requestedBottom);
+                        deltaX = (double)(left   - requestedLeft.floatValue());
+                        deltaY = (double)(bottom - requestedBottom.floatValue());
+                    } else {
+                        anchorGuess = "sin requestedLeft/requestedBottom — pasa las coords que enviaste";
+                    }
 
                     Map<String, Object> sig = new HashMap<>();
-                    sig.put("name",       entry.getKey());
-                    sig.put("page",       page);
-                    sig.put("rect",       new float[]{ left, bottom, right, top });
-                    sig.put("widthPt",    w);
-                    sig.put("heightPt",   h);
-                    sig.put("centerX",    left + w / 2f);
-                    sig.put("centerY",    bottom + h / 2f);
+                    sig.put("name",        entry.getKey());
+                    sig.put("page",        page);
+                    sig.put("rect",        new float[]{ left, bottom, right, top });
+                    sig.put("widthPt",     w);
+                    sig.put("heightPt",    h);
+                    sig.put("centerX",     cx);
+                    sig.put("centerY",     cy);
                     sig.put("anchorGuess", anchorGuess);
+                    if (deltaX != null) { sig.put("deltaX", deltaX); sig.put("deltaY", deltaY); }
                     signatures.add(sig);
                 }
             }

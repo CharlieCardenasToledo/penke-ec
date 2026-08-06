@@ -8,21 +8,20 @@ import {
   Crosshair, Check, Trash2,
 } from "lucide-react";
 import { IconButton } from "./ui";
+import { api } from "../lib/api";
+import {
+  computeCornerPos, clampToPage,
+  DEFAULT_STAMP_W_PT, DEFAULT_STAMP_H_PT,
+  CORNER_LABELS,
+  type Corner,
+} from "../lib/stampGeometry";
+
+export type { Corner };
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url
 ).toString();
-
-// Calibrado inspeccionando /Rect de un PDF firmado con FirmaEC 5.1.0 (anclaje LOWER_LEFT)
-const STAMP_W_PT = 110;
-const STAMP_H_PT = 36;
-
-export type Corner = "BL" | "BR" | "TL" | "TR";
-
-const CORNER_LABELS: Record<Corner, string> = {
-  BL: "↙ Inf. izq.", BR: "↘ Inf. der.", TL: "↖ Sup. izq.", TR: "↗ Sup. der.",
-};
 
 // lower-left corner en puntos PDF
 interface StampPdfPos { pagina: number; x: number; y: number; }
@@ -37,26 +36,6 @@ interface Props {
   initialCorner?: Corner;
   /** Tipo de estampado para mostrar en el overlay (QR, Simple, Avanzada…) */
   estampado?: string;
-}
-
-function computeCornerPos(viewBox: number[], corner: Corner): { x: number; y: number } {
-  const margin = 18;
-  const [x0, y0, x1, y1] = viewBox;
-  const map: Record<Corner, { x: number; y: number }> = {
-    BL: { x: x0 + margin,                y: y0 + margin },
-    BR: { x: x1 - STAMP_W_PT - margin,   y: y0 + margin },
-    TL: { x: x0 + margin,                y: y1 - STAMP_H_PT - margin },
-    TR: { x: x1 - STAMP_W_PT - margin,   y: y1 - STAMP_H_PT - margin },
-  };
-  return map[corner];
-}
-
-function clampToPage(x: number, y: number, viewBox: number[]): { x: number; y: number } {
-  const [x0, y0, x1, y1] = viewBox;
-  return {
-    x: Math.max(x0, Math.min(x1 - STAMP_W_PT, x)),
-    y: Math.max(y0, Math.min(y1 - STAMP_H_PT, y)),
-  };
 }
 
 export function PdfViewerModal({
@@ -76,6 +55,9 @@ export function PdfViewerModal({
   const [viewport,     setViewport]    = useState<pdfjsLib.PageViewport | null>(null);
   const [positioning,  setPositioning] = useState(!!onConfirmPosition);
   const [dragging,     setDragging]    = useState(false);
+  // Geometría del sello: se inicializa con los defaults y se actualiza desde placementInfo
+  const [stampW, setStampW] = useState(DEFAULT_STAMP_W_PT);
+  const [stampH, setStampH] = useState(DEFAULT_STAMP_H_PT);
   const [stampPdf,     setStampPdf]    = useState<StampPdfPos | null>(
     initialStamp
       ? { pagina: initialStamp.pagina, x: initialStamp.left, y: initialStamp.bottom }
@@ -88,6 +70,17 @@ export function PdfViewerModal({
     const prev = document.activeElement as HTMLElement | null;
     return () => { prev?.focus(); };
   }, []);
+
+  // ── Obtener geometría del sello desde el backend (solo en modo posicionamiento) ──
+  useEffect(() => {
+    if (!onConfirmPosition || !estampado) return;
+    api.placementInfo({ rutaDocumento: ruta, pagina: currentPage, estampado })
+      .then((info) => {
+        setStampW(info.stamp.widthPt);
+        setStampH(info.stamp.heightPt);
+      })
+      .catch(() => { /* backend no disponible: se mantienen los defaults */ });
+  }, [ruta, onConfirmPosition, estampado, currentPage]);
 
   // ── Cargar PDF ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -142,15 +135,15 @@ export function PdfViewerModal({
   useEffect(() => {
     if (!viewport || !initialCorner || cornerApplied.current || stampPdf) return;
     cornerApplied.current = true;
-    setStampPdf({ pagina: 1, ...computeCornerPos(viewport.viewBox, initialCorner) });
-  }, [viewport, initialCorner, stampPdf]);
+    setStampPdf({ pagina: 1, ...computeCornerPos(viewport.viewBox, initialCorner, stampW, stampH) });
+  }, [viewport, initialCorner, stampPdf, stampW, stampH]);
 
   // ── Rectángulo del sello en píxeles CSS (para overlay HTML) ─────────────────
   const stampScreenRect = useMemo(() => {
     if (!viewport || !stampPdf || stampPdf.pagina !== currentPage) return null;
     // Esquinas en espacio de canvas usando convertToViewportPoint
     const [cx0, cy0] = viewport.convertToViewportPoint(stampPdf.x,              stampPdf.y);
-    const [cx1, cy1] = viewport.convertToViewportPoint(stampPdf.x + STAMP_W_PT, stampPdf.y + STAMP_H_PT);
+    const [cx1, cy1] = viewport.convertToViewportPoint(stampPdf.x + stampW, stampPdf.y + stampH);
     return {
       left:   Math.min(cx0, cx1),
       top:    Math.min(cy0, cy1),
@@ -170,12 +163,12 @@ export function PdfViewerModal({
     const cy     = (e.clientY - rect.top)  * scaleY;
     const [clickX, clickY] = viewport.convertToPdfPoint(cx, cy);
     const clamped = clampToPage(
-      clickX - STAMP_W_PT / 2,
-      clickY - STAMP_H_PT / 2,
-      viewport.viewBox,
+      clickX - stampW / 2,
+      clickY - stampH / 2,
+      viewport.viewBox, stampW, stampH,
     );
     setStampPdf({ pagina: currentPage, ...clamped });
-  }, [positioning, viewport, currentPage, dragging]);
+  }, [positioning, viewport, currentPage, dragging, stampW, stampH]);
 
   // ── Arrastre del sello ────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.MouseEvent) => {
@@ -196,7 +189,7 @@ export function PdfViewerModal({
     const deltaCy = (e.clientY - dragStart.current.mouseY) * scaleY;
     const [startCx, startCy] = viewport.convertToViewportPoint(dragStart.current.pdfX, dragStart.current.pdfY);
     const [newPdfX, newPdfY] = viewport.convertToPdfPoint(startCx + deltaCx, startCy + deltaCy);
-    const clamped = clampToPage(newPdfX, newPdfY, viewport.viewBox);
+    const clamped = clampToPage(newPdfX, newPdfY, viewport.viewBox, stampW, stampH);
     setStampPdf((prev) => prev ? { ...prev, ...clamped } : prev);
   }, [dragging, viewport]);
 
@@ -207,7 +200,7 @@ export function PdfViewerModal({
   // ── Posiciones rápidas dinámicas ─────────────────────────────────────────────
   function applyQuickPos(corner: Corner) {
     if (!viewport) return;
-    setStampPdf({ pagina: currentPage, ...computeCornerPos(viewport.viewBox, corner) });
+    setStampPdf({ pagina: currentPage, ...computeCornerPos(viewport.viewBox, corner, stampW, stampH) });
   }
 
   useEffect(() => {
@@ -229,8 +222,8 @@ export function PdfViewerModal({
             if (!prev) return prev;
             let { pagina, x, y } = prev;
             if (e.key === "ArrowLeft")  x = Math.max(vb[0],               x - step);
-            if (e.key === "ArrowRight") x = Math.min(vb[2] - STAMP_W_PT,  x + step);
-            if (e.key === "ArrowUp")    y = Math.min(vb[3] - STAMP_H_PT,  y + step);
+            if (e.key === "ArrowRight") x = Math.min(vb[2] - stampW, x + step);
+            if (e.key === "ArrowUp")    y = Math.min(vb[3] - stampH, y + step);
             if (e.key === "ArrowDown")  y = Math.max(vb[1],               y - step);
             return { pagina, x, y };
           });
@@ -382,7 +375,7 @@ export function PdfViewerModal({
                     </p>
                     {stampPdf && (
                       <p className="text-[11px] text-blue-400/70 pl-5">
-                        {`${STAMP_W_PT} × ${STAMP_H_PT} pt · `}
+                        {`${stampW} × ${stampH} pt · `}
                         <span className="font-mono">{`(${Math.round(stampPdf.x)}, ${Math.round(stampPdf.y)})`}</span>
                         <span className="ml-1.5 text-green-400">✓ dentro de la página</span>
                       </p>
