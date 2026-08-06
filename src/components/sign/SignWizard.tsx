@@ -8,7 +8,8 @@ import { StepReview }     from "./StepReview";
 import { StepResult }     from "./StepResult";
 import type { FirmarResponse } from "../../lib/api";
 
-export interface StampPos { pagina: number; puntoX: number; puntoY: number; }
+/** Posición del sello en coords PDF (lower-left). El backend convierte al anclaje nativo de FirmaEC. */
+export interface StampPos { pagina: number; left: number; bottom: number; }
 
 export type SignResult =
   | { kind: "single"; response: FirmarResponse }

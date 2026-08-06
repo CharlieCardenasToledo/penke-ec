@@ -65,7 +65,7 @@ public class PlacementInfoRoute implements Handler {
             return;
         }
 
-        float pageWidthPt, pageHeightPt;
+        float boxLeft, boxBottom, boxRight, boxTop;
         int   rotation, numPages;
 
         try (PdfDocument pdfDoc = new PdfDocument(new PdfReader(rutaDocumento))) {
@@ -78,26 +78,26 @@ public class PlacementInfoRoute implements Handler {
                 return;
             }
             PdfPage   page = pdfDoc.getPage(pagina);
-            Rectangle mb   = page.getMediaBox();
-            rotation        = page.getRotation();
-            // Páginas rotadas 90°/270°: el ancho y alto visuales están invertidos
-            if (rotation == 90 || rotation == 270) {
-                pageWidthPt  = mb.getHeight();
-                pageHeightPt = mb.getWidth();
-            } else {
-                pageWidthPt  = mb.getWidth();
-                pageHeightPt = mb.getHeight();
-            }
+            // CropBox define el área visible real; si no existe, usar MediaBox.
+            // No se invierte por rotación: convertToPdfPoint() de PDF.js tampoco lo hace.
+            Rectangle box = page.getCropBox();
+            if (box == null) box = page.getMediaBox();
+            rotation  = page.getRotation();
+            boxLeft   = box.getLeft();
+            boxBottom = box.getBottom();
+            boxRight  = box.getRight();
+            boxTop    = box.getTop();
         }
 
-        // Posición por defecto: esquina inferior derecha con margen.
-        // defaultY = borde superior del sello (puntoY = top en coords FirmaEC).
-        int defaultX = Math.round(pageWidthPt - STAMP_W_PT - MARGIN_PT);
-        int defaultY = MARGIN_PT + STAMP_H_PT;  // bottom=MARGIN_PT, top=MARGIN_PT+STAMP_H_PT
+        // Posición por defecto: esquina inferior derecha con margen (lower-left).
+        int defaultLeft   = Math.round(boxRight - STAMP_W_PT - MARGIN_PT);
+        int defaultBottom = Math.round(boxBottom + MARGIN_PT);
 
         Map<String, Object> pageInfo = new HashMap<>();
-        pageInfo.put("widthPt",  pageWidthPt);
-        pageInfo.put("heightPt", pageHeightPt);
+        pageInfo.put("left",     boxLeft);
+        pageInfo.put("bottom",   boxBottom);
+        pageInfo.put("right",    boxRight);
+        pageInfo.put("top",      boxTop);
         pageInfo.put("rotation", rotation);
         pageInfo.put("numPages", numPages);
 
@@ -105,12 +105,14 @@ public class PlacementInfoRoute implements Handler {
         stampInfo.put("widthPt",  STAMP_W_PT);
         stampInfo.put("heightPt", STAMP_H_PT);
         // Anclaje LOWER_LEFT confirmado inspeccionando /Rect vs puntoX,puntoY de una firma real
-        stampInfo.put("anchor",   "LOWER_LEFT");
-        stampInfo.put("type",     estampado != null ? estampado : "default");
+        // anchor=LOWER_LEFT: el contrato con el frontend es lower-left.
+        // La conversión a UPPER_LEFT para FirmaEC ocurre en FirmarRoute.
+        stampInfo.put("anchor", "LOWER_LEFT");
+        stampInfo.put("type",   estampado != null ? estampado : "default");
 
         Map<String, Object> defaultPos = new HashMap<>();
-        defaultPos.put("x", defaultX);
-        defaultPos.put("y", defaultY);
+        defaultPos.put("left",   defaultLeft);
+        defaultPos.put("bottom", defaultBottom);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("page",            pageInfo);

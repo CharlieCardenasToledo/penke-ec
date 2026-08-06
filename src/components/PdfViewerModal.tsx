@@ -30,8 +30,9 @@ interface StampPdfPos { pagina: number; x: number; y: number; }
 interface Props {
   ruta: string;
   onClose: () => void;
-  onConfirmPosition?: (pagina: number, puntoX: number, puntoY: number) => void;
-  initialStamp?: { pagina: number; puntoX: number; puntoY: number } | null;
+  /** Callback con lower-left en coords PDF. El backend convierte al anclaje nativo de FirmaEC. */
+  onConfirmPosition?: (pagina: number, left: number, bottom: number) => void;
+  initialStamp?: { pagina: number; left: number; bottom: number } | null;
   /** Si se pasa, pre-selecciona esa esquina al cargar la primera página */
   initialCorner?: Corner;
   /** Tipo de estampado para mostrar en el overlay (QR, Simple, Avanzada…) */
@@ -75,11 +76,9 @@ export function PdfViewerModal({
   const [viewport,     setViewport]    = useState<pdfjsLib.PageViewport | null>(null);
   const [positioning,  setPositioning] = useState(!!onConfirmPosition);
   const [dragging,     setDragging]    = useState(false);
-  // puntoY en FirmaEC = borde SUPERIOR del sello (Y mayor = arriba en coords PDF).
-  // Internamente usamos lower-left; al confirmar sumamos STAMP_H_PT, al inicializar restamos.
   const [stampPdf,     setStampPdf]    = useState<StampPdfPos | null>(
     initialStamp
-      ? { pagina: initialStamp.pagina, x: initialStamp.puntoX, y: initialStamp.puntoY - STAMP_H_PT }
+      ? { pagina: initialStamp.pagina, x: initialStamp.left, y: initialStamp.bottom }
       : null,
   );
 
@@ -275,8 +274,7 @@ export function PdfViewerModal({
 
   function handleConfirm() {
     if (!stampPdf || !onConfirmPosition) return;
-    // FirmaEC espera puntoY = borde superior del sello en coords PDF
-    onConfirmPosition(stampPdf.pagina, Math.round(stampPdf.x), Math.round(stampPdf.y + STAMP_H_PT));
+    onConfirmPosition(stampPdf.pagina, Math.round(stampPdf.x), Math.round(stampPdf.y));
     onClose();
   }
 

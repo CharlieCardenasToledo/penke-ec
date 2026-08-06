@@ -9,7 +9,12 @@ export function traducirErrorFirma(e: unknown): string {
       case "OUTPUT_DIRECTORY_CREATE_FAILED": return "No se pudo crear la carpeta de destino. Verifica los permisos.";
       case "OUTPUT_WRITE_FAILED":            return "Error al guardar el archivo firmado. El disco podría estar lleno.";
       case "SIGNED_BYTES_EMPTY":             return "El proceso de firma no generó datos. Verifica el certificado y el PDF.";
-      case "MISSING_FIELD":                  return e.message;
+      case "STAMP_OUT_OF_BOUNDS":
+        return "La firma quedaría parcialmente fuera de la página. Vuelve a elegir su posición.";
+      case "INVALID_PAGE":
+        return "La página seleccionada no existe en este documento.";
+      case "MISSING_FIELD":
+        return e.message;
     }
   }
   const raw = e instanceof Error ? e.message : String(e);

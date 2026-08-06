@@ -34,7 +34,7 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
   }
 
   const stampLabel = stampPos
-    ? `Pág. ${stampPos.pagina} · (${Math.round(stampPos.puntoX)}, ${Math.round(stampPos.puntoY)})`
+    ? `Pág. ${stampPos.pagina} · (${Math.round(stampPos.left)}, ${Math.round(stampPos.bottom)})`
     : null;
 
   return (
@@ -43,11 +43,11 @@ export function StepAppearance({ profile, doc, stampPos, setStampPos, onBack, on
         <PdfViewerModal
           ruta={doc}
           onClose={() => setShowViewer(false)}
-          onConfirmPosition={(pagina, puntoX, puntoY) => {
-            setStampPos({ pagina, puntoX, puntoY });
+          onConfirmPosition={(pagina, left, bottom) => {
+            setStampPos({ pagina, left, bottom });
             setShowViewer(false);
           }}
-          initialStamp={stampPos}
+          initialStamp={stampPos ? { pagina: stampPos.pagina, left: stampPos.left, bottom: stampPos.bottom } : null}
           initialCorner={pendingCorner}
           estampado={profile.estampado}
         />

@@ -48,8 +48,10 @@ export interface FirmarRequest {
   razonFirma?: string;
   localizacion?: string;
   pagina?: number;
-  puntoX?: number;
-  puntoY?: number;
+  /** Borde izquierdo del sello en coords PDF (lower-left). El backend convierte al anclaje de FirmaEC. */
+  stampLeft?: number;
+  /** Borde inferior del sello en coords PDF (lower-left). El backend convierte al anclaje de FirmaEC. */
+  stampBottom?: number;
   /** Carpeta base donde se creará {carpetaBaseUsuario}/Penké Firmas/{nombre}_penke.pdf */
   carpetaBaseUsuario?: string;
 }
@@ -81,15 +83,17 @@ export interface PlacementInfoRequest {
 
 export interface PlacementInfoResponse {
   page: {
-    widthPt: number;
-    heightPt: number;
+    left: number;
+    bottom: number;
+    right: number;
+    top: number;
     rotation: number;
     numPages: number;
   };
   stamp: {
     widthPt: number;
     heightPt: number;
-    anchor: "LOWER_LEFT" | "CENTER";
+    anchor: "LOWER_LEFT";
     type: string;
   };
   defaultPosition: {

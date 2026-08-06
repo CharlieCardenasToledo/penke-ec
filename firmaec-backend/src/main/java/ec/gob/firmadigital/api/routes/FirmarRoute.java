@@ -58,9 +58,10 @@ public class FirmarRoute implements Handler {
         String estampado      = str(body, "estampado", null);
         String razonFirma     = str(body, "razonFirma", "");
         String localizacion   = str(body, "localizacion", "");
-        int    pagina         = num(body, "pagina", 1);
-        int    puntoX         = num(body, "puntoX", 0);
-        int    puntoY         = num(body, "puntoY", 0);
+        int    pagina      = num(body, "pagina", 1);
+        // stampLeft/stampBottom: lower-left en coords PDF (fronted siempre envía lower-left)
+        int    stampLeft   = num(body, "stampLeft",   0);
+        int    stampBottom = num(body, "stampBottom", 0);
 
         // Aceptar tanto el campo nuevo como el viejo para compatibilidad con perfiles anteriores
         String carpetaBase = str(body, "carpetaBaseUsuario", null);
@@ -113,40 +114,61 @@ public class FirmarRoute implements Handler {
             return;
         }
 
-        // Validar que el sello cabe dentro de la página (solo cuando hay estampado visible)
+        // Validar página y sello antes de firmar
         if (estampado != null && !estampado.isBlank()) {
             try (PdfDocument pdfCheck = new PdfDocument(new PdfReader(rutaDocumento))) {
                 int totalPages = pdfCheck.getNumberOfPages();
-                int pg         = Math.max(1, Math.min(pagina, totalPages));
-                PdfPage   pdfPage = pdfCheck.getPage(pg);
-                Rectangle mb      = pdfPage.getMediaBox();
-                int       rot     = pdfPage.getRotation();
-                float pageW = (rot == 90 || rot == 270) ? mb.getHeight() : mb.getWidth();
-                float pageH = (rot == 90 || rot == 270) ? mb.getWidth()  : mb.getHeight();
-                // puntoY = borde SUPERIOR del sello (calibrado inspeccionando /Rect de PDF firmado)
+
+                // Rechazar página inválida — no clampar y firmar en otra página
+                if (pagina < 1 || pagina > totalPages) {
+                    ctx.status(400).json(Map.of(
+                        "code",  "INVALID_PAGE",
+                        "error", "Página " + pagina + " no existe en este documento (" + totalPages + " páginas)"
+                    ));
+                    return;
+                }
+
+                // Usar CropBox (o MediaBox) en coords internas PDF sin invertir por rotación.
+                // convertToPdfPoint() de PDF.js también devuelve coords internas sin rotación.
+                PdfPage   pdfPage = pdfCheck.getPage(pagina);
+                Rectangle box     = pdfPage.getCropBox();
+                if (box == null) box = pdfPage.getMediaBox();
+                float pageLeft   = box.getLeft();
+                float pageBottom = box.getBottom();
+                float pageRight  = box.getRight();
+                float pageTop    = box.getTop();
+
                 int stampW = 110, stampH = 36;
                 boolean outOfBounds =
-                    puntoX < 0             || puntoY > pageH          ||
-                    puntoX + stampW > pageW || puntoY - stampH < 0;
+                    stampLeft              < pageLeft   ||
+                    stampLeft   + stampW   > pageRight  ||
+                    stampBottom            < pageBottom ||
+                    stampBottom + stampH   > pageTop;
+
                 if (outOfBounds) {
-                    int sugX = Math.max(0, Math.min(Math.round(pageW - stampW - 18), puntoX));
-                    int sugY = Math.max(stampH, Math.min(Math.round(pageH - 18), puntoY));
+                    int sugLeft   = (int) Math.max(pageLeft,  Math.min(pageRight  - stampW - 18, stampLeft));
+                    int sugBottom = (int) Math.max(pageBottom, Math.min(pageTop   - stampH - 18, stampBottom));
                     ctx.status(400).json(Map.of(
-                        "code",       "STAMP_OUT_OF_BOUNDS",
-                        "error",      "La firma quedaría parcialmente fuera de la página.",
-                        "suggestedX", sugX,
-                        "suggestedY", sugY
+                        "code",            "STAMP_OUT_OF_BOUNDS",
+                        "error",           "La firma quedaría parcialmente fuera de la página.",
+                        "suggestedLeft",   sugLeft,
+                        "suggestedBottom", sugBottom
                     ));
                     return;
                 }
             }
         }
 
+        // FirmaEC interpreta Point(x, y) como (left, top) del sello en coords PDF.
+        // El frontend siempre envía stampLeft/stampBottom (lower-left); convertimos aquí.
+        int firmaEcX = stampLeft;
+        int firmaEcY = stampBottom + 36;  // bottom → top (altura del sello = 36 pt)
+
         char[] password = (clave != null && !clave.isEmpty()) ? clave.toCharArray() : null;
         byte[] firmado = FirmaDigital.firmar(
             ks, alias, doc,
             password,
-            new Point(puntoX, puntoY),
+            new Point(firmaEcX, firmaEcY),
             pagina,
             razonFirma,
             localizacion,
@@ -223,14 +245,14 @@ public class FirmarRoute implements Handler {
         resp.put("cedula",         datos != null ? datos.getCedula() : "");
         resp.put("backendBuildId", BuildInfo.BUILD_ID);
 
-        // Incluir la posición efectiva cuando hay sello visible (útil para calibración)
+        // Posición solicitada (lower-left, coords PDF). No es el /Rect final — ver placementUsed TODO.
         if (estampado != null && !estampado.isBlank()) {
             Map<String, Object> pu = new HashMap<>();
-            pu.put("page",     pagina);
-            pu.put("x",        puntoX);
-            pu.put("y",        puntoY);
-            pu.put("widthPt",  110);
-            pu.put("heightPt", 36);
+            pu.put("page",      pagina);
+            pu.put("left",      stampLeft);
+            pu.put("bottom",    stampBottom);
+            pu.put("widthPt",   110);
+            pu.put("heightPt",  36);
             resp.put("placementUsed", pu);
         }
 

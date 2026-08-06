@@ -77,9 +77,9 @@ export function StepReview({
       estampado: (profile.estampado as "QR" | "Simple" | "Avanzada") || undefined,
       razonFirma: profile.razon,
       localizacion: profile.lugar,
-      pagina: stampPos?.pagina ?? 1,
-      puntoX: stampPos?.puntoX ?? 0,
-      puntoY: stampPos?.puntoY ?? 0,
+      pagina:      stampPos?.pagina ?? 1,
+      stampLeft:   stampPos?.left   ?? 0,
+      stampBottom: stampPos?.bottom ?? 0,
       carpetaBaseUsuario: profile.carpetaBaseUsuario,
     };
   }
