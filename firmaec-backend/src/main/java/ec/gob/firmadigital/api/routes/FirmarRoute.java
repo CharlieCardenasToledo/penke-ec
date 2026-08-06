@@ -13,6 +13,11 @@ import ec.gob.firmadigital.utils.PropertiesUtils;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 
+import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
+import com.itextpdf.kernel.pdf.PdfReader;
+
 import java.awt.Point;
 import java.io.File;
 import java.nio.file.Files;
@@ -108,6 +113,35 @@ public class FirmarRoute implements Handler {
             return;
         }
 
+        // Validar que el sello cabe dentro de la página (solo cuando hay estampado visible)
+        if (estampado != null && !estampado.isBlank()) {
+            try (PdfDocument pdfCheck = new PdfDocument(new PdfReader(rutaDocumento))) {
+                int totalPages = pdfCheck.getNumberOfPages();
+                int pg         = Math.max(1, Math.min(pagina, totalPages));
+                PdfPage   pdfPage = pdfCheck.getPage(pg);
+                Rectangle mb      = pdfPage.getMediaBox();
+                int       rot     = pdfPage.getRotation();
+                float pageW = (rot == 90 || rot == 270) ? mb.getHeight() : mb.getWidth();
+                float pageH = (rot == 90 || rot == 270) ? mb.getWidth()  : mb.getHeight();
+                // puntoY = borde SUPERIOR del sello (calibrado inspeccionando /Rect de PDF firmado)
+                int stampW = 110, stampH = 36;
+                boolean outOfBounds =
+                    puntoX < 0             || puntoY > pageH          ||
+                    puntoX + stampW > pageW || puntoY - stampH < 0;
+                if (outOfBounds) {
+                    int sugX = Math.max(0, Math.min(Math.round(pageW - stampW - 18), puntoX));
+                    int sugY = Math.max(stampH, Math.min(Math.round(pageH - 18), puntoY));
+                    ctx.status(400).json(Map.of(
+                        "code",       "STAMP_OUT_OF_BOUNDS",
+                        "error",      "La firma quedaría parcialmente fuera de la página.",
+                        "suggestedX", sugX,
+                        "suggestedY", sugY
+                    ));
+                    return;
+                }
+            }
+        }
+
         char[] password = (clave != null && !clave.isEmpty()) ? clave.toCharArray() : null;
         byte[] firmado = FirmaDigital.firmar(
             ks, alias, doc,
@@ -188,6 +222,17 @@ public class FirmarRoute implements Handler {
         resp.put("firmante",       datos != null ? datos.getNombre() + " " + datos.getApellido() : alias);
         resp.put("cedula",         datos != null ? datos.getCedula() : "");
         resp.put("backendBuildId", BuildInfo.BUILD_ID);
+
+        // Incluir la posición efectiva cuando hay sello visible (útil para calibración)
+        if (estampado != null && !estampado.isBlank()) {
+            Map<String, Object> pu = new HashMap<>();
+            pu.put("page",     pagina);
+            pu.put("x",        puntoX);
+            pu.put("y",        puntoY);
+            pu.put("widthPt",  110);
+            pu.put("heightPt", 36);
+            resp.put("placementUsed", pu);
+        }
 
         ctx.json(resp);
     }

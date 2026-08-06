@@ -15,6 +15,12 @@ dist-ssr
 # Java / Maven build artifacts
 firmaec-backend/target/
 
+# JAR compilado (se regenera con mvn package)
+firmaec-backend.jar
+
+# Índice RTFM (generado localmente)
+.rtfm/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

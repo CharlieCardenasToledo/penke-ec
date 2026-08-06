@@ -8,9 +8,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
-// Tamaño del sello en puntos PDF (igual que FirmaEC nativo: 153×50)
-const STAMP_W_PT = 153;
-const STAMP_H_PT = 50;
+// Calibrado inspeccionando /Rect de un PDF firmado con FirmaEC 5.1.0 (anclaje LOWER_LEFT)
+const STAMP_W_PT = 110;
+const STAMP_H_PT = 36;
 
 interface Props {
   rutaDocumento: string;
@@ -73,29 +73,29 @@ export function PdfPositionPicker({ rutaDocumento, onConfirm, onClose }: Props) 
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
 
-    // Limpia y re-renderiza la página base (solo si ya existe)
     if (pdfDoc) {
       pdfDoc.getPage(pagina).then((page) => {
         page.render({ canvasContext: ctx, viewport: viewport, canvas: canvas }).promise.then(() => {
-          // Tamaño del sello escalado a píxeles de pantalla
-          const sw = (STAMP_W_PT / 72) * 96 * 1.5;
-          const sh = (STAMP_H_PT / 72) * 96 * 1.5;
+          // Tamaño correcto: pts × scale (sin factor ×96/72)
+          const sw = STAMP_W_PT * 1.5;
+          const sh = STAMP_H_PT * 1.5;
           ctx.save();
           ctx.globalAlpha = 0.7;
           ctx.fillStyle = "#3b82f6";
           ctx.strokeStyle = "#1d4ed8";
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.roundRect(x - sw / 2, y - sh / 2, sw, sh, 4);
+          // x, y es esquina inferior-izquierda; dibujar desde la esquina superior-izquierda en canvas
+          ctx.roundRect(x, y - sh, sw, sh, 4);
           ctx.fill();
           ctx.stroke();
           ctx.globalAlpha = 1;
           ctx.fillStyle = "#ffffff";
           ctx.font = "bold 11px Inter, sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText("FIRMA DIGITAL", x, y - 6);
+          ctx.fillText("FIRMA DIGITAL", x + sw / 2, y - sh / 2 - 4);
           ctx.font = "9px Inter, sans-serif";
-          ctx.fillText("Penké EC", x, y + 8);
+          ctx.fillText("Penké EC", x + sw / 2, y - sh / 2 + 8);
           ctx.restore();
         });
       });
@@ -108,11 +108,18 @@ export function PdfPositionPicker({ rutaDocumento, onConfirm, onClose }: Props) 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width  / rect.width;
     const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left)  * scaleX;
-    const canvasY = (e.clientY - rect.top)   * scaleY;
+    const canvasX = (e.clientX - rect.left) * scaleX;
+    const canvasY = (e.clientY - rect.top)  * scaleY;
 
-    setStampPos({ x: canvasX, y: canvasY });
-    drawStamp(canvasX, canvasY);
+    // Convertir a PDF y ajustar para que el clic sea el centro del sello
+    const [pdfClickX, pdfClickY] = viewport.convertToPdfPoint(canvasX, canvasY);
+    const originPdfX = pdfClickX - STAMP_W_PT / 2;
+    const originPdfY = pdfClickY - STAMP_H_PT / 2;
+    // Volver a canvas para el dibujo (esquina inferior-izquierda del sello en canvas)
+    const [originCx, originCy] = viewport.convertToViewportPoint(originPdfX, originPdfY);
+
+    setStampPos({ x: originCx, y: originCy });
+    drawStamp(originCx, originCy);
   }, [viewport, drawStamp]);
 
   const handleConfirm = useCallback(() => {

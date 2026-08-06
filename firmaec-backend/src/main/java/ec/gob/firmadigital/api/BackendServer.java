@@ -2,6 +2,8 @@ package ec.gob.firmadigital.api;
 
 import ec.gob.firmadigital.api.BuildInfo;
 import ec.gob.firmadigital.api.routes.FirmarRoute;
+import ec.gob.firmadigital.api.routes.InspectSignaturesRoute;
+import ec.gob.firmadigital.api.routes.PlacementInfoRoute;
 import ec.gob.firmadigital.api.routes.TokensRoute;
 import ec.gob.firmadigital.api.routes.ValidarRoute;
 import ec.gob.firmadigital.api.routes.VerificarRoute;
@@ -54,9 +56,11 @@ public class BackendServer {
         });
         app.get("/tokens", new TokensRoute());
 
-        app.post("/firmar",    new FirmarRoute());
-        app.post("/verificar", new VerificarRoute());
-        app.post("/validar",   new ValidarRoute());
+        app.post("/firmar",                    new FirmarRoute());
+        app.post("/pdf/placement-info",       new PlacementInfoRoute());
+        app.post("/pdf/inspect-signatures",   new InspectSignaturesRoute());
+        app.post("/verificar",                new VerificarRoute());
+        app.post("/validar",                  new ValidarRoute());
 
         app.start(PORT);
         System.out.println("FirmaEC Backend v" + BuildInfo.VERSION + " (buildId=" + BuildInfo.BUILD_ID + ", apiVersion=" + BuildInfo.API_VERSION + ") corriendo en puerto " + PORT);

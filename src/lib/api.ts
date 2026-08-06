@@ -54,6 +54,14 @@ export interface FirmarRequest {
   carpetaBaseUsuario?: string;
 }
 
+export interface PlacementUsed {
+  page: number;
+  x: number;
+  y: number;
+  widthPt: number;
+  heightPt: number;
+}
+
 export interface FirmarResponse {
   rutaFirmado: string;
   carpetaSalida?: string;
@@ -61,6 +69,33 @@ export interface FirmarResponse {
   firmante: string;
   cedula: string;
   backendBuildId?: string;
+  /** Posición efectiva del sello (solo cuando hay estampado visible). Útil para calibración. */
+  placementUsed?: PlacementUsed;
+}
+
+export interface PlacementInfoRequest {
+  rutaDocumento: string;
+  pagina?: number;
+  estampado?: string;
+}
+
+export interface PlacementInfoResponse {
+  page: {
+    widthPt: number;
+    heightPt: number;
+    rotation: number;
+    numPages: number;
+  };
+  stamp: {
+    widthPt: number;
+    heightPt: number;
+    anchor: "LOWER_LEFT" | "CENTER";
+    type: string;
+  };
+  defaultPosition: {
+    x: number;
+    y: number;
+  };
 }
 
 export interface Firma {
@@ -82,8 +117,9 @@ export interface TokenInfo {
 export interface TokensResponse { tokens: TokenInfo[]; }
 
 export const api = {
-  firmar:    (req: FirmarRequest) => post<FirmarResponse>("/firmar", req),
-  verificar: (rutaDocumento: string) => post<VerificarResponse>("/verificar", { rutaDocumento }),
-  validar:   (rutaCertificado: string, clave: string) => post<ValidarResponse>("/validar", { rutaCertificado, clave }),
-  tokens:    () => get<TokensResponse>("/tokens"),
+  firmar:         (req: FirmarRequest) => post<FirmarResponse>("/firmar", req),
+  placementInfo:  (req: PlacementInfoRequest) => post<PlacementInfoResponse>("/pdf/placement-info", req),
+  verificar:      (rutaDocumento: string) => post<VerificarResponse>("/verificar", { rutaDocumento }),
+  validar:        (rutaCertificado: string, clave: string) => post<ValidarResponse>("/validar", { rutaCertificado, clave }),
+  tokens:         () => get<TokensResponse>("/tokens"),
 };
