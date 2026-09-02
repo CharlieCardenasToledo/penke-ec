@@ -1,3 +1,5 @@
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::process::{Child, Command};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -42,10 +44,10 @@ fn get_vault_key(app_handle: tauri::AppHandle) -> Result<String, String> {
         if let Ok(entry) = keyring::Entry::new(SERVICE, ACCOUNT) {
             if entry.set_password(&legacy).is_ok() {
                 let _ = std::fs::remove_file(&key_path); // ya está en el keychain
+                return Ok(legacy);
             }
         }
-
-        return Ok(legacy);
+        return Err("No se pudo migrar la clave al almacén seguro del sistema".to_string());
     }
 
     // 3. Primera ejecución: generar clave aleatoria
@@ -56,19 +58,30 @@ fn get_vault_key(app_handle: tauri::AppHandle) -> Result<String, String> {
         .collect();
     let key: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
 
-    // Intentar guardar en keychain; si falla, usar archivo como respaldo
+    // No guardar la clave maestra en texto plano como fallback.
     let in_keychain = keyring::Entry::new(SERVICE, ACCOUNT)
         .map(|e| e.set_password(&key).is_ok())
         .unwrap_or(false);
 
     if !in_keychain {
-        std::fs::create_dir_all(&data_dir)
-            .map_err(|e| format!("crear directorio: {e}"))?;
-        std::fs::write(&key_path, &key)
-            .map_err(|e| format!("guardar vault-key: {e}"))?;
+        return Err(
+            "Windows Credential Manager no está disponible; no se guardará la clave en texto plano"
+                .to_string(),
+        );
     }
 
     Ok(key)
+}
+
+struct BackendSessionToken(Mutex<String>);
+
+#[tauri::command]
+fn backend_session_token(state: State<BackendSessionToken>) -> Result<String, String> {
+    state
+        .0
+        .lock()
+        .map(|token| token.clone())
+        .map_err(|_| "No se pudo acceder al token de sesión".to_string())
 }
 
 const BACKEND_VERSION: &str = "1.0.1";
@@ -103,13 +116,31 @@ fn base64_encode(data: &[u8]) -> String {
     let mut out = String::with_capacity((data.len() + 2) / 3 * 4);
     for chunk in data.chunks(3) {
         let b0 = chunk[0] as usize;
-        let b1 = if chunk.len() > 1 { chunk[1] as usize } else { 0 };
-        let b2 = if chunk.len() > 2 { chunk[2] as usize } else { 0 };
-        let _ = write!(out, "{}{}{}{}",
+        let b1 = if chunk.len() > 1 {
+            chunk[1] as usize
+        } else {
+            0
+        };
+        let b2 = if chunk.len() > 2 {
+            chunk[2] as usize
+        } else {
+            0
+        };
+        let _ = write!(
+            out,
+            "{}{}{}{}",
             CHARS[b0 >> 2] as char,
             CHARS[((b0 & 3) << 4) | (b1 >> 4)] as char,
-            if chunk.len() > 1 { CHARS[((b1 & 0xf) << 2) | (b2 >> 6)] as char } else { '=' },
-            if chunk.len() > 2 { CHARS[b2 & 0x3f] as char } else { '=' },
+            if chunk.len() > 1 {
+                CHARS[((b1 & 0xf) << 2) | (b2 >> 6)] as char
+            } else {
+                '='
+            },
+            if chunk.len() > 2 {
+                CHARS[b2 & 0x3f] as char
+            } else {
+                '='
+            },
         );
     }
     out
@@ -159,50 +190,6 @@ fn resolve_jar(app: &tauri::App) -> Result<std::path::PathBuf, String> {
     Err("firmaec-backend.jar no encontrado. Reinstala la aplicación o ejecuta npm run build:backend.".to_string())
 }
 
-fn pid_file() -> std::path::PathBuf {
-    std::env::temp_dir().join("penke-backend.pid")
-}
-
-fn guardar_pid(pid: u32) {
-    let _ = std::fs::write(pid_file(), pid.to_string());
-}
-
-fn matar_backend_anterior() {
-    // Capa 1: matar por PID guardado
-    let file = pid_file();
-    if let Ok(content) = std::fs::read_to_string(&file) {
-        if let Ok(pid) = content.trim().parse::<u32>() {
-            println!("Terminando backend anterior (PID {})...", pid);
-            #[cfg(target_os = "windows")]
-            let _ = Command::new("taskkill").args(["/F", "/PID", &pid.to_string()]).output();
-            #[cfg(not(target_os = "windows"))]
-            let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
-        }
-        let _ = std::fs::remove_file(&file);
-    }
-
-    // Capa 2: fallback por puerto (primera ejecución o proceso huérfano)
-    #[cfg(target_os = "windows")]
-    {
-        let _ = Command::new("powershell")
-            .args([
-                "-NoProfile", "-NonInteractive", "-Command",
-                "Get-Process -Id (Get-NetTCPConnection -LocalPort 8765 -State Listen \
-                 -ErrorAction SilentlyContinue).OwningProcess \
-                 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue",
-            ])
-            .output();
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = Command::new("sh")
-            .args(["-c", "lsof -ti:8765 | xargs kill -9 2>/dev/null || true"])
-            .output();
-    }
-
-    std::thread::sleep(Duration::from_millis(600));
-}
-
 #[derive(Debug)]
 struct BackendInfo {
     version: String,
@@ -210,12 +197,13 @@ struct BackendInfo {
     api_version: u32,
 }
 
-fn version_backend_actual() -> Option<BackendInfo> {
+fn version_backend_actual(token: &str) -> Option<BackendInfo> {
     let text = reqwest::blocking::Client::builder()
         .timeout(Duration::from_millis(800))
         .build()
         .ok()?
-        .get("http://localhost:8765/version")
+        .get("http://127.0.0.1:8765/version")
+        .bearer_auth(token)
         .send()
         .ok()?
         .text()
@@ -231,11 +219,12 @@ fn version_backend_actual() -> Option<BackendInfo> {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
-        let api_version = val
-            .get("apiVersion")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0) as u32;
-        return Some(BackendInfo { version, build_id, api_version });
+        let api_version = val.get("apiVersion").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        return Some(BackendInfo {
+            version,
+            build_id,
+            api_version,
+        });
     }
 
     // Formato texto plano (backend antiguo 1.0.0)
@@ -246,20 +235,25 @@ fn version_backend_actual() -> Option<BackendInfo> {
     })
 }
 
-fn backend_responde() -> bool {
+fn backend_responde(token: &str) -> bool {
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_millis(800))
         .build()
         .ok()
-        .and_then(|c| c.get("http://localhost:8765/health").send().ok())
+        .and_then(|c| {
+            c.get("http://127.0.0.1:8765/health")
+                .bearer_auth(token)
+                .send()
+                .ok()
+        })
         .map(|r| r.status().is_success())
         .unwrap_or(false)
 }
 
-fn wait_for_backend(timeout_ms: u64) -> bool {
+fn wait_for_backend(token: &str, timeout_ms: u64) -> bool {
     let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms);
     while std::time::Instant::now() < deadline {
-        if backend_responde() {
+        if backend_responde(token) {
             return true;
         }
         std::thread::sleep(Duration::from_millis(500));
@@ -267,36 +261,14 @@ fn wait_for_backend(timeout_ms: u64) -> bool {
     false
 }
 
-fn necesita_reiniciar() -> bool {
-    match version_backend_actual() {
-        Some(info) => {
-            let version_ok  = info.version    == BACKEND_VERSION;
-            let build_ok    = info.build_id   == BACKEND_BUILD_ID;
-            let api_ok      = info.api_version == BACKEND_API_VERSION;
-            if version_ok && build_ok && api_ok {
-                println!(
-                    "Backend v{} (buildId={}, apiVersion={}) ya corriendo y actualizado.",
-                    info.version, info.build_id, info.api_version
-                );
-                false
-            } else {
-                println!(
-                    "Backend activo (v{}, buildId={}, apiVersion={}) != esperado (v{}, buildId={}, apiVersion={}). Reiniciando.",
-                    info.version, info.build_id, info.api_version,
-                    BACKEND_VERSION, BACKEND_BUILD_ID, BACKEND_API_VERSION
-                );
-                true
-            }
-        }
-        None => {
-            println!("Backend no responde a /version. Reiniciando.");
-            true
-        }
-    }
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let token = {
+        use rand::RngCore;
+        let mut bytes = [0u8; 32];
+        rand::thread_rng().fill_bytes(&mut bytes);
+        bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -311,16 +283,16 @@ pub fn run() {
             .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            leer_archivo_base64, carpeta_penke_defecto, verificar_archivo,
+            leer_archivo_base64,
+            carpeta_penke_defecto,
+            verificar_archivo,
             get_vault_key,
+            backend_session_token,
         ])
+        .manage(BackendSessionToken(Mutex::new(token.clone())))
         .manage(JavaProcess(Mutex::new(None)))
         .setup(|app| {
-            if backend_responde() && !necesita_reiniciar() {
-                return Ok(());
-            }
-
-            matar_backend_anterior();
+            let app_handle = app.handle().clone();
 
             let jar_path = match resolve_jar(app) {
                 Ok(p) => p,
@@ -331,40 +303,60 @@ pub fn run() {
             };
 
             let java = find_java();
-            let jar_size = std::fs::metadata(&jar_path)
-                .map(|m| m.len())
-                .unwrap_or(0);
+            let jar_size = std::fs::metadata(&jar_path).map(|m| m.len()).unwrap_or(0);
 
             println!(
                 "Backend JAR: {:?} ({:.1} MB)",
                 jar_path,
                 jar_size as f64 / 1_048_576.0
             );
-            println!("Lanzando backend v{}: {} -jar {:?}", BACKEND_VERSION, java, jar_path);
+            println!(
+                "Lanzando backend v{}: {} -jar {:?}",
+                BACKEND_VERSION, java, jar_path
+            );
 
-            let child = Command::new(&java)
+            let mut backend_command = Command::new(&java);
+            backend_command
                 .arg("-jar")
                 .arg(&jar_path)
+                .env("PENKE_API_TOKEN", &token);
+
+            // Algunas instalaciones de Windows exponen TEMP/TMP con una ruta
+            // corta (por ejemplo, `C:\\Users\\CHARLI~1`). Java NIO puede fallar
+            // al crear el canal interno de Jetty con ese formato. Entregamos
+            // una ruta larga y válida al proceso Java, sin modificar el entorno
+            // de la aplicación principal.
+            #[cfg(target_os = "windows")]
+            {
+                let java_temp = std::path::Path::new(r"C:\Windows\Temp");
+                if java_temp.is_dir() {
+                    backend_command.env("TEMP", java_temp).env("TMP", java_temp);
+                }
+            }
+
+            // java.exe es un proceso de consola. CREATE_NO_WINDOW evita que
+            // Windows abra una ventana CMD al iniciar la aplicación empaquetada.
+            #[cfg(target_os = "windows")]
+            backend_command.creation_flags(0x08000000);
+
+            let child = backend_command
                 .spawn()
                 .expect("No se pudo iniciar el backend Java. Verifica que Java esté instalado.");
-
-            guardar_pid(child.id());
 
             let state: State<JavaProcess> = app.state();
             *state.0.lock().unwrap() = Some(child);
 
-            let app_handle = app.handle().clone();
             std::thread::spawn(move || {
-                if !wait_for_backend(20000) {
+                if !wait_for_backend(&token, 20000) {
                     eprintln!("CRÍTICO: backend no respondió en 20s");
                     return;
                 }
                 println!("Backend listo en :8765");
-                match version_backend_actual() {
+                match version_backend_actual(&token) {
                     Some(ref info)
-                        if info.version     == BACKEND_VERSION
-                        && info.build_id    == BACKEND_BUILD_ID
-                        && info.api_version == BACKEND_API_VERSION =>
+                        if info.version == BACKEND_VERSION
+                            && info.build_id == BACKEND_BUILD_ID
+                            && info.api_version == BACKEND_API_VERSION =>
                     {
                         println!(
                             "Versión verificada: v{} buildId={} apiVersion={}",
@@ -375,17 +367,22 @@ pub fn run() {
                         eprintln!(
                             "CRÍTICO: backend incompatible — v{} buildId={} apiVersion={} \
                              (se esperaba v{} buildId={} apiVersion={}). Terminando proceso.",
-                            info.version, info.build_id, info.api_version,
-                            BACKEND_VERSION, BACKEND_BUILD_ID, BACKEND_API_VERSION
+                            info.version,
+                            info.build_id,
+                            info.api_version,
+                            BACKEND_VERSION,
+                            BACKEND_BUILD_ID,
+                            BACKEND_API_VERSION
                         );
                         let state: tauri::State<JavaProcess> = app_handle.state();
                         if let Some(mut child) = state.0.lock().unwrap().take() {
                             let _ = child.kill();
-                            let _ = std::fs::remove_file(pid_file());
                         };
                     }
                     None => {
-                        eprintln!("ADVERTENCIA: backend arrancó pero no respondió al check de versión");
+                        eprintln!(
+                            "ADVERTENCIA: backend arrancó pero no respondió al check de versión"
+                        );
                     }
                 }
             });
@@ -398,7 +395,6 @@ pub fn run() {
                 let child = state.0.lock().unwrap().take();
                 if let Some(mut c) = child {
                     let _ = c.kill();
-                    let _ = std::fs::remove_file(pid_file());
                 };
             }
         })

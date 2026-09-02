@@ -51,7 +51,7 @@ function AppShell() {
 
   if (onboarding) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-4 sm:p-8">
         <OnboardingFlow
           onComplete={(p) => { savePreset(p); setOnboarding(false); }}
           onAddAnother={(p) => savePreset(p)}
@@ -64,7 +64,7 @@ function AppShell() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <AnimatedRoutes />
       </main>
     </div>

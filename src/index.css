@@ -30,7 +30,7 @@
   --color-status-warning: #B45309;
   --color-status-error:   #B91C1C;
 
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -39,7 +39,7 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   background: var(--color-bg);
-  color: #1e293b;
+  color: #334155;
   -webkit-font-smoothing: antialiased;
 }
 

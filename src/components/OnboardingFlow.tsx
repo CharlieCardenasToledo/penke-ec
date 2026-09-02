@@ -211,16 +211,26 @@ export function CertIdentityCard({ titular, cedula, cargo, validoHasta, emisor }
 // ─── Barra de progreso (4 etapas) ────────────────────────────────────────────
 
 function StepBar({ current }: { current: number }) {
+  const labels = ["Certificado", "Verificación", "Apariencia", "Carpeta"];
   return (
-    <div className="flex items-center gap-1 mb-8">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className={[
-          "h-1 rounded-full transition-all duration-300 flex-1",
-          i < current  ? "bg-blue-600" :
-          i === current ? "bg-blue-400" :
-                         "bg-slate-200",
-        ].join(" ")} />
-      ))}
+    <div className="mb-8" aria-label={`Progreso de configuración: etapa ${current + 1} de 4`}>
+      <div className="flex items-center gap-1" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={current + 1}>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={[
+            "h-1 transition-all duration-300 flex-1",
+            i < current  ? "bg-blue-600" :
+            i === current ? "bg-blue-400" :
+                           "bg-slate-200",
+          ].join(" ")} />
+        ))}
+      </div>
+      <div className="grid grid-cols-4 mt-2 text-[11px] text-slate-500">
+        {labels.map((label, i) => (
+          <span key={label} className={[i === current ? "font-semibold text-blue-700" : "", i === 0 ? "text-left" : i === 3 ? "text-right" : "text-center"].join(" ")}>
+            {label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -383,8 +393,8 @@ export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: 
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
           <p className="text-xl font-semibold text-slate-700">Tu firma digital, auténtica.</p>
-          <p className="text-slate-500 mt-2 text-base leading-relaxed max-w-sm mx-auto">
-            Configura tu perfil de firma en 4 pasos. Solo necesitas tu certificado .p12 o token USB.
+          <p className="text-slate-600 mt-2 text-base leading-relaxed max-w-sm mx-auto">
+            Configura tu identidad, el aspecto de la firma y la carpeta donde guardarás tus documentos.
           </p>
         </motion.div>
 
@@ -393,7 +403,7 @@ export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: 
             className="inline-flex items-center gap-2.5 px-9 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base shadow-lg shadow-blue-200 transition-colors">
             Comenzar <ArrowRight size={18} />
           </motion.button>
-          <p className="text-xs text-slate-400 mt-4">Necesitas tu certificado .p12 o un token USB</p>
+          <p className="text-xs text-slate-500 mt-4">Necesitas un certificado .p12/.pfx o un token USB</p>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -677,17 +687,20 @@ export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: 
         {/* Tipo de sello */}
         <div>
           <p className="text-sm font-medium text-slate-700 mb-3">¿Cómo se verá tu firma?</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Tipo de sello en el documento">
             {STAMP_OPTIONS.map(({ value, label, desc, recommended, Preview }) => {
               const selected = estampado === value;
               return (
                 <button key={value} onClick={() => setEstampado(value)}
                   className={[
-                    "relative flex flex-col items-center text-center rounded-2xl border-2 p-4 transition-all",
+                    "relative flex flex-col items-center text-center rounded-xl border-2 p-4 transition-all",
                     selected
                       ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-100"
                       : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm",
-                  ].join(" ")}>
+                  ].join(" ")}
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={`${label}: ${desc}`}>
 
                   {recommended && (
                     <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wide text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">
@@ -708,7 +721,7 @@ export function OnboardingFlow({ onComplete, onAddAnother, onCompleteAndSign }: 
                   <p className={`text-sm font-semibold leading-tight ${selected ? "text-blue-700" : "text-slate-800"}`}>
                     {label}
                   </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">{desc}</p>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-tight">{desc}</p>
                 </button>
               );
             })}

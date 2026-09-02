@@ -43,7 +43,7 @@ export function HomePage() {
   const status = selectedProfile ? certStatus(selectedProfile.certValidoHasta) : null;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-7">
       {viewingRuta && (
         <PdfViewerModal ruta={viewingRuta} onClose={() => setViewingRuta(null)} />
       )}
@@ -52,7 +52,7 @@ export function HomePage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Inicio</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Firma y verifica documentos digitales</p>
+          <p className="text-sm text-slate-600 mt-1">Firma, comprueba y valida tus documentos digitales.</p>
         </div>
         <button
           onClick={() => navigate("/firmar")}
@@ -63,13 +63,16 @@ export function HomePage() {
       </div>
 
       {/* Firma rápida */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Firma rápida</p>
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+        <div>
+          <h2 className="text-base font-semibold text-slate-800">Firma rápida</h2>
+          <p className="text-sm text-slate-600 mt-1">Elige un perfil y selecciona el PDF que quieres firmar.</p>
+        </div>
 
         {/* Selector de perfil */}
         {presets.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-slate-400">Perfil</p>
+            <p className="text-xs font-medium text-slate-600">Perfil de firma</p>
             <div className="flex flex-wrap gap-2">
               {presets.map((p) => {
                 const s = certStatus(p.certValidoHasta);
@@ -105,7 +108,7 @@ export function HomePage() {
         {selectedProfile && (
           <div className="flex items-center gap-1.5">
             <FolderOpen size={12} className="text-slate-400 flex-shrink-0" />
-            <p className="text-xs text-slate-400 font-mono truncate">{outputFolder}</p>
+            <p className="text-xs text-slate-600 font-mono truncate">{outputFolder}</p>
           </div>
         )}
 
@@ -159,10 +162,10 @@ export function HomePage() {
       {/* Actividad reciente */}
       {entries.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
             <Clock size={11} /> Actividad reciente
-          </p>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+          </h2>
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
             {entries.slice(0, 5).map((e, i) => (
               <motion.div key={e.ruta} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
@@ -193,12 +196,15 @@ export function HomePage() {
                       const r = await revealInFolder(e.ruta);
                       if (!r.ok) toast("No se pudo abrir la carpeta.", "error");
                     }}
+                    aria-label={`Mostrar carpeta de ${e.nombre}`}
+                    title="Mostrar carpeta"
                     className="px-2 py-1 text-xs text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all hidden sm:block"
                   >
                     <FolderOpen size={12} />
                   </button>
                   <button
                     onClick={() => navigator.clipboard.writeText(e.ruta)}
+                    aria-label={`Copiar ruta de ${e.nombre}`}
                     title="Copiar ruta"
                     className="p-1.5 text-xs text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all hidden sm:flex"
                   >

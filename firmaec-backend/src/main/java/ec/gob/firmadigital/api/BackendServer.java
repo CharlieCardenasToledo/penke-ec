@@ -8,16 +8,31 @@ import ec.gob.firmadigital.api.routes.TokensRoute;
 import ec.gob.firmadigital.api.routes.ValidarRoute;
 import ec.gob.firmadigital.api.routes.VerificarRoute;
 import io.javalin.Javalin;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Set;
 
 public class BackendServer {
 
     public static final int PORT = 8765;
 
     public static void main(String[] args) {
+        String apiToken = System.getenv("PENKE_API_TOKEN");
+        if (apiToken == null || apiToken.isBlank()) {
+            throw new IllegalStateException("PENKE_API_TOKEN no está configurado");
+        }
+
+        Set<String> allowedOrigins = Set.of(
+            "http://tauri.localhost",
+            "https://tauri.localhost",
+            "tauri://localhost",
+            "http://localhost:1420"
+        );
+
         Javalin app = Javalin.create(config -> {
             config.bundledPlugins.enableCors(cors -> {
                 cors.addRule(rule -> {
-                    rule.anyHost();
+                    rule.allowHost("http://tauri.localhost", "https://tauri.localhost", "tauri://localhost", "http://localhost:1420");
                     rule.allowCredentials = false;
                 });
             });
@@ -25,22 +40,35 @@ public class BackendServer {
 
         // Manejar preflight OPTIONS explícitamente
         app.options("/*", ctx -> {
-            ctx.header("Access-Control-Allow-Origin", "*");
+            String origin = ctx.header("Origin");
+            if (origin != null && allowedOrigins.contains(origin)) ctx.header("Access-Control-Allow-Origin", origin);
             ctx.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
             ctx.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
             ctx.status(204);
         });
 
-        // Inyectar headers CORS en todas las respuestas
         app.before(ctx -> {
-            ctx.header("Access-Control-Allow-Origin", "*");
+            String origin = ctx.header("Origin");
+            if (origin != null && allowedOrigins.contains(origin)) ctx.header("Access-Control-Allow-Origin", origin);
             ctx.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            ctx.header("Access-Control-Allow-Headers", "Content-Type");
+            ctx.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            if ("OPTIONS".equalsIgnoreCase(ctx.method().name())) return;
+
+            String authorization = ctx.header("Authorization");
+            String supplied = authorization != null && authorization.startsWith("Bearer ")
+                ? authorization.substring("Bearer ".length()).trim() : "";
+            boolean valid = MessageDigest.isEqual(
+                supplied.getBytes(StandardCharsets.UTF_8),
+                apiToken.getBytes(StandardCharsets.UTF_8)
+            );
+            if (!valid) {
+                ctx.status(401).json(java.util.Map.of("code", "UNAUTHORIZED", "error", "Sesión no autorizada"));
+                ctx.skipRemainingHandlers();
+            }
         });
 
         // Capturar todas las excepciones no manejadas y retornar JSON
         app.exception(Exception.class, (e, ctx) -> {
-            ctx.header("Access-Control-Allow-Origin", "*");
             String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             ctx.status(500).json(java.util.Map.of("code", "INTERNAL_ERROR", "error", msg));
             e.printStackTrace();
@@ -62,7 +90,7 @@ public class BackendServer {
         app.post("/verificar",                new VerificarRoute());
         app.post("/validar",                  new ValidarRoute());
 
-        app.start(PORT);
+        app.start("127.0.0.1", PORT);
         System.out.println("FirmaEC Backend v" + BuildInfo.VERSION + " (buildId=" + BuildInfo.BUILD_ID + ", apiVersion=" + BuildInfo.API_VERSION + ") corriendo en puerto " + PORT);
     }
 }

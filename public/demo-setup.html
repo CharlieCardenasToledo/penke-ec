@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/><title>Penke Demo Setup</title></head>
+<body>
+<script>
+var presets = [{"schemaVersion":2,"id":"demo1","nombre":"Juan Perez Mendoza","tipoFirma":"archivo","cert":"C:/certs/juan_perez.p12","razon":"Revisado y aprobado","lugar":"Quito, Ecuador","estampado":"QR","certTitular":"Juan Perez Mendoza","certCedula":"1712345678","certValidoHasta":"2027-06-30","recordarClave":true,"carpetaBaseUsuario":"C:/Users/JuanPerez"}];
+var history  = [{"ruta":"C:/docs/Contrato_Alquiler_2025.pdf","nombre":"Contrato_Alquiler_2025.pdf","fecha":"22/08/2025","firmante":"Juan Perez Mendoza"},{"ruta":"C:/docs/Oficio_Municipio_Quito.pdf","nombre":"Oficio_Municipio_Quito.pdf","fecha":"21/08/2025","firmante":"Juan Perez Mendoza"},{"ruta":"C:/docs/Factura_Servicios_Agosto.pdf","nombre":"Factura_Servicios_Agosto.pdf","fecha":"20/08/2025","firmante":"Juan Perez Mendoza"}];
+localStorage.setItem("firmaec.presets",  JSON.stringify(presets));
+localStorage.setItem("firmaec.lastProfile", "demo1");
+localStorage.setItem("firmaec.history",  JSON.stringify(history));
+window.location.href = "/";
+</script>
+</body>
+</html>
