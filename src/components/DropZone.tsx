@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Upload } from "lucide-react";
 
@@ -11,6 +12,64 @@ interface Props {
 
 export function DropZone({ label, accept, value, onChange }: Props) {
   const [dragging, setDragging] = useState(false);
+  const dropZoneRef = useRef<HTMLButtonElement>(null);
+  const onChangeRef = useRef(onChange);
+  const acceptRef = useRef(accept);
+
+  onChangeRef.current = onChange;
+  acceptRef.current = accept;
+
+  const acceptsPath = useCallback((path: string) => {
+    const extensions = acceptRef.current;
+    if (!extensions?.length) return true;
+    const extension = path.split(".").pop()?.toLowerCase();
+    return Boolean(extension && extensions.some((item) => item.toLowerCase() === extension));
+  }, []);
+
+  const isInsideDropZone = useCallback((position: { x: number; y: number }) => {
+    const rect = dropZoneRef.current?.getBoundingClientRect();
+    if (!rect) return false;
+
+    // Tauri entrega coordenadas físicas; el DOM trabaja en píxeles lógicos.
+    const scale = window.devicePixelRatio || 1;
+    const x = position.x / scale;
+    const y = position.y / scale;
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    getCurrentWebview().onDragDropEvent(({ payload }) => {
+      if (payload.type === "leave") {
+        setDragging(false);
+        return;
+      }
+
+      const inside = isInsideDropZone(payload.position);
+      if (payload.type === "enter") {
+        setDragging(inside && payload.paths.some(acceptsPath));
+      } else if (payload.type === "over") {
+        setDragging(inside);
+      } else if (payload.type === "drop") {
+        setDragging(false);
+        if (!inside) return;
+        const path = payload.paths.find(acceptsPath);
+        if (path) onChangeRef.current(path);
+      }
+    }).then((stopListening) => {
+      if (disposed) stopListening();
+      else unlisten = stopListening;
+    }).catch(() => {
+      // En el navegador normal se conserva el fallback HTML de abajo.
+    });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [acceptsPath, isInsideDropZone]);
 
   const pick = useCallback(async () => {
     const selected = await open({
@@ -22,6 +81,7 @@ export function DropZone({ label, accept, value, onChange }: Props) {
 
   return (
     <button
+      ref={dropZoneRef}
       type="button"
       onClick={pick}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -29,7 +89,8 @@ export function DropZone({ label, accept, value, onChange }: Props) {
       onDrop={(e) => {
         e.preventDefault(); setDragging(false);
         const f = e.dataTransfer.files[0];
-        if (f) onChange((f as unknown as { path: string }).path);
+        const path = (f as File & { path?: string })?.path;
+        if (path && acceptsPath(path)) onChange(path);
       }}
       className={[
         "w-full rounded-xl border-2 border-dashed px-4 py-5 text-left transition-all cursor-pointer",
