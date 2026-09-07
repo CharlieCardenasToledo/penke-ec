@@ -31,7 +31,11 @@ Penké es una aplicación de escritorio para firmar, verificar y validar documen
 
 ## Descarga
 
-> Próximamente — releases en la sección [Releases](../../releases)
+Descarga la versión estable más reciente desde [Releases](../../releases). La versión actual es **v1.0.2**.
+
+- [Instalador Windows `.exe`](../../releases/latest)
+- [Instalador Windows `.msi`](../../releases/latest)
+- También hay paquetes disponibles para macOS y Linux.
 
 ## Desarrollo
 
@@ -39,17 +43,24 @@ Penké es una aplicación de escritorio para firmar, verificar y validar documen
 # Instalar dependencias
 npm install
 
-# Modo desarrollo
-npm run tauri dev
+# Modo desarrollo (compila el backend y levanta Tauri)
+npm run dev:desktop
 
-# Build de producción
-npm run tauri build
+# Build de producción del escritorio
+npm run build:desktop
+
+# Tests
+npm test
 ```
 
 ### Requisitos para compilar
-- Node.js 18+
+- Node.js 22.13+ (recomendado: Node.js 24)
 - Rust (toolchain estable)
-- Java 17+ (solo para recompilar el backend; el JAR ya está incluido)
+- Java 17+
+- Maven 3.9+ (solo para recompilar el backend)
+
+En Windows, el workflow de release instala Maven automáticamente. Para desarrollo local,
+Maven debe estar disponible en el `PATH` o definirse `MAVEN_HOME`.
 
 ### Regenerar iconos de aplicación
 
