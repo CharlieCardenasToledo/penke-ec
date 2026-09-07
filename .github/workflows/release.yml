@@ -38,9 +38,12 @@ jobs:
             throw "No se encontró mvn.cmd dentro de $mavenRoot"
           }
           $mavenBin = $mavenCmd.DirectoryName
+          $mavenHome = Split-Path -Parent $mavenBin
           $env:Path = "$mavenBin;$env:Path"
           & $mavenCmd.FullName -version
           $mavenBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "MAVEN_HOME=$mavenHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MAVEN_CMD=$($mavenCmd.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

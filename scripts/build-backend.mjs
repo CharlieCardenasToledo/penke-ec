@@ -25,7 +25,7 @@ function resolveMvn() {
   }
   return "mvn"; // asumir que está en PATH (CI con setup-java lo pone ahí)
 }
-const mvn = resolveMvn();
+const mvn = process.env.MAVEN_CMD ?? resolveMvn();
 
 // Instalar firmador en el repo Maven local si no está disponible
 // (necesario en CI y en máquinas sin el JAR previo en ~/.m2)
