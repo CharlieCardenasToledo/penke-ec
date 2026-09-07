@@ -32,13 +32,14 @@ jobs:
         shell: pwsh
         run: |
           choco install maven --no-progress -y
-          $mavenBin = Join-Path $env:ChocolateyInstall "bin"
-          $mavenCmd = Join-Path $mavenBin "mvn.cmd"
-          if (-not (Test-Path -LiteralPath $mavenCmd)) {
-            throw "No se encontró Maven en $mavenCmd"
+          $mavenRoot = Join-Path $env:ChocolateyInstall "lib\maven"
+          $mavenCmd = Get-ChildItem -Path $mavenRoot -Filter "mvn.cmd" -Recurse -File | Select-Object -First 1
+          if ($null -eq $mavenCmd) {
+            throw "No se encontró mvn.cmd dentro de $mavenRoot"
           }
+          $mavenBin = $mavenCmd.DirectoryName
           $env:Path = "$mavenBin;$env:Path"
-          & $mavenCmd -version
+          & $mavenCmd.FullName -version
           $mavenBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Setup Rust
