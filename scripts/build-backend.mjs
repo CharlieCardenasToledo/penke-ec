@@ -42,13 +42,13 @@ execSync(
     "-DartifactId=firmador",
     "-Dversion=5.1.0",
     "-Dpackaging=jar",
-    "-q",
+    "-e",
   ].join(" "),
   { cwd: projectRoot, stdio: "inherit", shell: true }
 );
 
 console.log("Compilando backend Java...");
-execSync(`"${mvn}" -f firmaec-backend/pom.xml clean package -q`, {
+execSync(`"${mvn}" -f firmaec-backend/pom.xml clean package -e`, {
   cwd: projectRoot,
   stdio: "inherit",
   shell: true,
