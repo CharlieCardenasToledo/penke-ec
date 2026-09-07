@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2] — 2026-09-07
+
+### Correcciones
+- Corregida la configuración CORS del backend para permitir las peticiones desde Tauri durante la firma.
+
 ## [1.0.0] — 2025
 
 ### Primera versión pública

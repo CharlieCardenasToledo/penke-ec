@@ -29,14 +29,10 @@ public class BackendServer {
             "http://localhost:1420"
         );
 
-        Javalin app = Javalin.create(config -> {
-            config.bundledPlugins.enableCors(cors -> {
-                cors.addRule(rule -> {
-                    rule.allowHost("http://tauri.localhost", "https://tauri.localhost", "tauri://localhost", "http://localhost:1420");
-                    rule.allowCredentials = false;
-                });
-            });
-        });
+        // Javalin 6 exige puerto explícito en allowHost(), pero Tauri envía
+        // orígenes como http://tauri.localhost sin puerto. El manejo CORS
+        // explícito de abajo cubre los orígenes permitidos sin ese parser.
+        Javalin app = Javalin.create();
 
         // Manejar preflight OPTIONS explícitamente
         app.options("/*", ctx -> {
