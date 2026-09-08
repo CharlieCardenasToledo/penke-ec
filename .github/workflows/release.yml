@@ -59,6 +59,9 @@ jobs:
       - name: Build Java backend
         run: npm run build:backend
 
+      - name: Build embedded Java runtime
+        run: npm run build:runtime
+
       - name: Validate updater signing configuration
         shell: pwsh
         env:
@@ -119,6 +122,9 @@ jobs:
 
       - name: Build Java backend
         run: npm run build:backend
+
+      - name: Build embedded Java runtime
+        run: npm run build:runtime
 
       - name: Validate updater signing configuration
         env:
@@ -182,6 +188,9 @@ jobs:
 
       - name: Build Java backend
         run: npm run build:backend
+
+      - name: Build embedded Java runtime
+        run: npm run build:runtime
 
       - name: Validate updater signing configuration
         env:

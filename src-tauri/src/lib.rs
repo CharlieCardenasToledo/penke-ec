@@ -148,11 +148,20 @@ fn base64_encode(data: &[u8]) -> String {
 
 struct JavaProcess(Mutex<Option<Child>>);
 
-fn find_java() -> String {
+fn find_java(app: &tauri::App) -> String {
+    let java_name = if cfg!(target_os = "windows") { "java.exe" } else { "java" };
+
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let bundled = resource_dir.join("runtime").join("bin").join(java_name);
+        if bundled.exists() {
+            return bundled.to_string_lossy().to_string();
+        }
+    }
+
     if let Ok(java_home) = std::env::var("JAVA_HOME") {
-        let path = format!("{}\\bin\\java.exe", java_home);
-        if std::path::Path::new(&path).exists() {
-            return path;
+        let path = std::path::Path::new(&java_home).join("bin").join(java_name);
+        if path.exists() {
+            return path.to_string_lossy().to_string();
         }
     }
     "java".to_string()
@@ -304,7 +313,7 @@ pub fn run() {
                 }
             };
 
-            let java = find_java();
+            let java = find_java(app);
             let jar_size = std::fs::metadata(&jar_path).map(|m| m.len()).unwrap_or(0);
 
             println!(
@@ -343,7 +352,7 @@ pub fn run() {
 
             let child = backend_command
                 .spawn()
-                .expect("No se pudo iniciar el backend Java. Verifica que Java esté instalado.");
+                .expect("No se pudo iniciar el backend Java incluido con Penké.");
 
             let state: State<JavaProcess> = app.state();
             *state.0.lock().unwrap() = Some(child);

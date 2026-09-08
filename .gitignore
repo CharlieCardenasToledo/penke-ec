@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .tauri-updater.key
 .tauri-updater.key.pub
+src-tauri/resources/runtime/
 
 # Java / Maven build artifacts
 firmaec-backend/target/

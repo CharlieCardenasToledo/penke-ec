@@ -36,7 +36,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "resources/firmaec-backend.jar": "."
+      "resources/firmaec-backend.jar": ".",
+      "resources/runtime": "runtime"
     }
   },
   "plugins": {
