@@ -473,7 +473,7 @@ export function PdfViewerModal({
                     className="text-white/50 leading-none select-none"
                     style={{ fontSize: Math.max(6, scale * 6) }}
                   >
-                    Penké EC
+                    Firmado mediante Penke
                   </span>
                 </div>
               )}

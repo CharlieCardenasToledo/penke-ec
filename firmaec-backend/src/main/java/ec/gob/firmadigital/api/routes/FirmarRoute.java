@@ -22,6 +22,11 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfName;
 import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.kernel.colors.ColorConstants;
 
 import java.awt.Point;
 import java.io.File;
@@ -50,6 +55,45 @@ public class FirmarRoute implements Handler {
         if (v == null) return def;
         if (v instanceof Number) return ((Number) v).intValue();
         try { return Integer.parseInt(v.toString()); } catch (Exception e) { return def; }
+    }
+
+    /**
+     * Agrega la procedencia de Penke antes de firmar criptográficamente.
+     * Nunca se modifica el PDF después de la firma: la leyenda queda incluida
+     * en el contenido que protege la firma PAdES.
+     */
+    private static Path prepararDocumentoConMarcaPenke(
+        Path origen, int pagina, int stampLeft, int stampBottom
+    ) throws Exception {
+        Path temporal = Files.createTempFile("penke-sello-", ".pdf");
+        try (PdfDocument pdf = new PdfDocument(
+                new PdfReader(origen.toString()),
+                new com.itextpdf.kernel.pdf.PdfWriter(temporal.toString()))) {
+            PdfPage page = pdf.getPage(pagina);
+            Rectangle box = page.getCropBox();
+            if (box == null) box = page.getMediaBox();
+
+            PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            float centerX = stampLeft + StampGeometry.WIDTH_PT / 2f;
+            float baseline = stampBottom - 9f;
+            if (baseline < box.getBottom() + 7f) {
+                baseline = stampBottom + StampGeometry.HEIGHT_PT + 9f;
+            }
+
+            String label = "Firmado mediante Penke";
+            float labelWidth = font.getWidth(label, 7f);
+            PdfCanvas canvas = new PdfCanvas(page);
+            canvas.beginText()
+                .setFontAndSize(font, 7f)
+                .setFillColor(ColorConstants.DARK_GRAY)
+                .moveText(centerX - labelWidth / 2f, baseline)
+                .showText(label)
+                .endText();
+        } catch (Exception e) {
+            try { Files.deleteIfExists(temporal); } catch (Exception ignored) {}
+            throw e;
+        }
+        return temporal;
     }
 
     @Override
@@ -182,16 +226,33 @@ public class FirmarRoute implements Handler {
         int firmaEcX = stampLeft;
         int firmaEcY = stampBottom + StampGeometry.HEIGHT_PT;  // bottom → top (UPPER_LEFT anchor)
 
-        char[] password = (clave != null && !clave.isEmpty()) ? clave.toCharArray() : null;
-        byte[] firmado = FirmaDigital.firmar(
-            ks, alias, doc,
-            password,
-            new Point(firmaEcX, firmaEcY),
-            pagina,
-            razonFirma,
-            localizacion,
-            estampado
-        );
+        Path documentoParaFirmar = doc.toPath();
+        Path marcaTemporal = null;
+        byte[] firmado;
+        try {
+            if (estampado != null && !estampado.isBlank()) {
+                marcaTemporal = prepararDocumentoConMarcaPenke(
+                    documentoParaFirmar, pagina, stampLeft, stampBottom
+                );
+                documentoParaFirmar = marcaTemporal;
+            }
+
+            char[] password = (clave != null && !clave.isEmpty()) ? clave.toCharArray() : null;
+            firmado = FirmaDigital.firmar(
+                ks, alias, documentoParaFirmar.toFile(),
+                password,
+                new Point(firmaEcX, firmaEcY),
+                pagina,
+                razonFirma,
+                localizacion,
+                estampado
+            );
+
+        } finally {
+            if (marcaTemporal != null) {
+                try { Files.deleteIfExists(marcaTemporal); } catch (Exception ignored) {}
+            }
+        }
 
         if (firmado == null || firmado.length == 0) {
             ctx.status(500).json(Map.of("code", "SIGNED_BYTES_EMPTY", "error", "FirmaDigital.firmar() retornó vacío. Verifica el certificado y el PDF."));
