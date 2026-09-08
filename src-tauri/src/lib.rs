@@ -84,7 +84,7 @@ fn backend_session_token(state: State<BackendSessionToken>) -> Result<String, St
         .map_err(|_| "No se pudo acceder al token de sesión".to_string())
 }
 
-const BACKEND_VERSION: &str = "1.0.3";
+const BACKEND_VERSION: &str = "1.0.4";
 const BACKEND_BUILD_ID: &str = "2026-09-08";
 const BACKEND_API_VERSION: u32 = 2;
 
@@ -273,6 +273,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_stronghold::Builder::new(|password| {
                 use sha2::{Digest, Sha256};

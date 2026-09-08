@@ -17,31 +17,37 @@ Penké es una aplicación de escritorio para firmar, verificar y validar documen
 
 ## Descargas
 
-Versión estable actual: **[v1.0.2](https://github.com/CharlieCardenasToledo/penke-ec/releases/tag/v1.0.2)**
+Versión estable actual: **[v1.0.3](https://github.com/CharlieCardenasToledo/penke-ec/releases/tag/v1.0.3)**
 
 ### Windows
 
 | Instalador | Recomendado para | Enlace |
 |---|---|---|
-| `.exe` | Instalación sencilla para la mayoría de usuarios | [Descargar instalador Windows](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC_1.0.2_x64-setup.exe) |
-| `.msi` | Despliegues administrados y empresariales | [Descargar paquete MSI](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC_1.0.2_x64_en-US.msi) |
+| `.exe` | Instalación sencilla para la mayoría de usuarios | [Descargar instalador Windows](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_x64-setup.exe) |
+| `.msi` | Despliegues administrados y empresariales | [Descargar paquete MSI](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_x64_en-US.msi) |
 
 ### macOS
 
 | Paquete | Arquitectura | Enlace |
 |---|---|---|
-| `.dmg` | Universal — Intel y Apple Silicon | [Descargar instalador macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC_1.0.2_universal.dmg) |
-| `.tar.gz` | Universal — distribución alternativa | [Descargar paquete macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC_universal.app.tar.gz) |
+| `.dmg` | Universal — Intel y Apple Silicon | [Descargar instalador macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_universal.dmg) |
+| `.tar.gz` | Universal — distribución alternativa | [Descargar paquete macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_universal.app.tar.gz) |
 
 ### Linux
 
 | Paquete | Distribuciones | Enlace |
 |---|---|---|
-| `.AppImage` | Portátil; compatible con la mayoría de distribuciones | [Descargar AppImage](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC_1.0.2_amd64.AppImage) |
-| `.deb` | Debian, Ubuntu y derivadas | [Descargar paquete DEB](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC_1.0.2_amd64.deb) |
-| `.rpm` | Fedora, RHEL, openSUSE y derivadas | [Descargar paquete RPM](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.2/Penke.EC-1.0.2-1.x86_64.rpm) |
+| `.AppImage` | Portátil; compatible con la mayoría de distribuciones | [Descargar AppImage](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_amd64.AppImage) |
+| `.deb` | Debian, Ubuntu y derivadas | [Descargar paquete DEB](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_amd64.deb) |
+| `.rpm` | Fedora, RHEL, openSUSE y derivadas | [Descargar paquete RPM](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC-1.0.3-1.x86_64.rpm) |
 
 Consulta la [página completa de releases](https://github.com/CharlieCardenasToledo/penke-ec/releases) para ver el historial y las notas de cada versión.
+
+### Actualizaciones desde la aplicación
+
+Penké comprueba silenciosamente si existe una nueva versión unos segundos después de iniciar. Si encuentra una actualización, muestra la versión y sus notas de cambios antes de descargarla. También puedes usar **Buscar actualizaciones** en la barra lateral para comprobar manualmente.
+
+La instalación requiere confirmación, descarga el paquete firmado y reinicia la aplicación. En Windows el instalador puede cerrar Penké durante el proceso; vuelve a abrirla cuando termine si no se inicia automáticamente.
 
 ## Funcionalidades
 
@@ -123,6 +129,14 @@ npm run release major   # Cambios incompatibles
 ```
 
 El workflow de GitHub Actions genera automáticamente los instaladores para Windows, macOS y Linux al publicar un tag `v*`. El pipeline incluye la compilación y verificación del backend Java, además del empaquetado Tauri.
+
+Las releases incluyen artefactos firmados para que el actualizador pueda verificar su autenticidad. La clave privada nunca debe entrar al repositorio. La primera vez, guárdala como secreto de GitHub desde PowerShell:
+
+```powershell
+Get-Content -LiteralPath .tauri-updater.key -Raw | gh secret set TAURI_SIGNING_PRIVATE_KEY --repo CharlieCardenasToledo/penke-ec
+```
+
+Conserva `.tauri-updater.key` en un lugar seguro y no la compartas. Si se pierde, las instalaciones existentes no podrán validar nuevas actualizaciones; en ese caso habría que generar una nueva clave y publicar una nueva versión base.
 
 ## Recursos de marca
 

@@ -9,6 +9,8 @@ import { FirmarPage }       from "./pages/FirmarPage";
 import { VerificarPage }    from "./pages/VerificarPage";
 import { ValidarPage }      from "./pages/ValidarPage";
 import { usePresets }       from "./hooks/usePresets";
+import { useAppUpdater }   from "./hooks/useAppUpdater";
+import { AppUpdater }      from "./components/AppUpdater";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -37,6 +39,7 @@ function AppShell() {
   const { presets, savePreset } = usePresets();
   const [onboarding, setOnboarding] = useState(presets.length === 0);
   const [pendingSign, setPendingSign] = useState(false);
+  const updater = useAppUpdater();
 
   useEffect(() => {
     if (presets.length === 0) setOnboarding(true);
@@ -63,10 +66,20 @@ function AppShell() {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar onCheckUpdates={() => { void updater.checkForUpdates(false); }} />
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <AnimatedRoutes />
       </main>
+      <AppUpdater
+        state={updater.state}
+        version={updater.update?.version}
+        notes={updater.update?.body}
+        progress={updater.progress}
+        error={updater.error}
+        onCheck={() => { void updater.checkForUpdates(false); }}
+        onInstall={() => { void updater.installUpdate(); }}
+        onClose={updater.dismissUpdate}
+      />
     </div>
   );
 }

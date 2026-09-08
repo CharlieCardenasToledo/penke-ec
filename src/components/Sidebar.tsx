@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { PenLine, ShieldCheck, BadgeCheck, Home } from "lucide-react";
+import { PenLine, ShieldCheck, BadgeCheck, Home, RefreshCw } from "lucide-react";
 import imagotipoWhite from "../assets/penke-imagotipo-white.svg";
 
 const links = [
@@ -11,7 +11,7 @@ const links = [
 
 const APP_VERSION = __APP_VERSION__;
 
-export function Sidebar() {
+export function Sidebar({ onCheckUpdates }: { onCheckUpdates: () => void }) {
   return (
     <aside className="flex flex-col w-56 lg:w-60 min-h-screen bg-[#0f172a] text-white flex-shrink-0">
       <div className="px-5 py-4 border-b border-white/10">
@@ -34,6 +34,9 @@ export function Sidebar() {
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10">
+        <button onClick={onCheckUpdates} className="mb-3 flex items-center gap-2 text-xs font-medium text-slate-300 transition-colors hover:text-white">
+          <RefreshCw size={13} /> Buscar actualizaciones
+        </button>
         <p className="text-[11px] text-slate-400 leading-relaxed">Compatible con certificados digitales acreditados en Ecuador</p>
       </div>
     </aside>

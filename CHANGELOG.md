@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.4] — 2026-09-08
+
+### Nuevas funcionalidades
+- Añadido actualizador integrado para comprobar nuevas versiones desde la aplicación.
+- Se muestran la versión disponible y las notas de la release antes de instalar.
+- Descarga e instalación de paquetes firmados con indicador de progreso y reinicio seguro.
+- Disponible la comprobación manual desde la barra lateral.
+
+### Distribución
+- Configurados artefactos firmados para Windows, macOS y Linux.
+- El workflow valida la clave de firmado antes de publicar cualquier release.
+
 ## [1.0.3] — 2026-09-08
 
 ### Mejoras

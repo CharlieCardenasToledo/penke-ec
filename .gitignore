@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.tauri-updater.key
+.tauri-updater.key.pub
 
 # Java / Maven build artifacts
 firmaec-backend/target/
