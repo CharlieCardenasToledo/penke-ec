@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5] — 2026-09-08
+
+### Correcciones de interfaz
+- Fijado el sidebar a la ventana para que no desaparezca al desplazarse por el contenido.
+- Separado el desplazamiento interno de los enlaces del pie de la barra lateral.
+- La acción «Buscar actualizaciones» permanece visible en todo momento.
+
 ## [1.0.4] — 2026-09-08
 
 ### Nuevas funcionalidades

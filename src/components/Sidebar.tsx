@@ -13,13 +13,13 @@ const APP_VERSION = __APP_VERSION__;
 
 export function Sidebar({ onCheckUpdates }: { onCheckUpdates: () => void }) {
   return (
-    <aside className="flex flex-col w-56 lg:w-60 min-h-screen bg-[#0f172a] text-white flex-shrink-0">
+    <aside className="sticky top-0 flex h-screen max-h-screen flex-col w-56 lg:w-60 bg-[#0f172a] text-white flex-shrink-0 overflow-hidden">
       <div className="px-5 py-4 border-b border-white/10">
         <img src={imagotipoWhite} alt="Penké" className="w-40 mb-1.5" />
         <p className="text-xs text-slate-500">v{APP_VERSION}</p>
       </div>
 
-      <nav className="px-3 py-4 space-y-1 flex-1">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {links.map(({ to, Icon, label }) => (
           <NavLink key={to} to={to} end={to === "/"}
             className={({ isActive }) => [
