@@ -2,7 +2,14 @@
 
 ## [1.0.3] — 2026-09-08
 
-> Describe los cambios de esta versión aquí antes de hacer el release.
+### Mejoras
+- Añadida la leyenda visible «Firmado mediante Penke» en los documentos con sello.
+- La leyenda se incorpora antes de la firma PAdES para preservar la validez criptográfica.
+- Actualizada la vista previa del posicionamiento para reflejar el sello final.
+
+### Verificación
+- Backend Java compilado correctamente en Windows.
+- 18 pruebas Maven y 24 pruebas frontend aprobadas.
 
 ## [1.0.2] — 2026-09-07
 
