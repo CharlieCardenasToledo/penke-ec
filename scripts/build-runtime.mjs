@@ -18,10 +18,13 @@ const modules = [
   "java.security.sasl", "java.sql", "java.transaction.xa", "java.xml",
   "jdk.crypto.cryptoki", "jdk.crypto.ec", "jdk.httpserver", "jdk.management",
   "jdk.unsupported",
-].join(",");
+];
+
+// Proveedor nativo requerido por Windows-MY y certificados/token del sistema.
+if (process.platform === "win32") modules.push("jdk.crypto.mscapi");
 
 const result = spawnSync(jlink, [
-  "--add-modules", modules,
+  "--add-modules", modules.join(","),
   "--bind-services",
   "--strip-debug",
   "--no-man-pages",

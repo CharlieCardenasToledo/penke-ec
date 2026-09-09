@@ -84,7 +84,7 @@ fn backend_session_token(state: State<BackendSessionToken>) -> Result<String, St
         .map_err(|_| "No se pudo acceder al token de sesión".to_string())
 }
 
-const BACKEND_VERSION: &str = "1.0.8";
+const BACKEND_VERSION: &str = "1.0.9";
 const BACKEND_BUILD_ID: &str = "2026-09-09";
 const BACKEND_API_VERSION: u32 = 2;
 
@@ -150,6 +150,18 @@ struct JavaProcess(Mutex<Option<Child>>);
 
 fn find_java(app: &tauri::App) -> String {
     let java_name = if cfg!(target_os = "windows") { "java.exe" } else { "java" };
+
+    // En instalaciones Windows, los recursos se copian junto al ejecutable.
+    // Resolver primero esa ubicación evita depender de JAVA_HOME y garantiza
+    // que Penké ejecute el runtime privado con el que fue probado.
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            let bundled = exe_dir.join("runtime").join("bin").join(java_name);
+            if bundled.exists() {
+                return bundled.to_string_lossy().to_string();
+            }
+        }
+    }
 
     if let Ok(resource_dir) = app.path().resource_dir() {
         let bundled = resource_dir.join("runtime").join("bin").join(java_name);
@@ -330,7 +342,10 @@ pub fn run() {
             backend_command
                 .arg("-jar")
                 .arg(&jar_path)
-                .env("PENKE_API_TOKEN", &token);
+                .env("PENKE_API_TOKEN", &token)
+                // El backend vigila este PID y termina si una actualización o
+                // cierre abrupto elimina al proceso principal.
+                .env("PENKE_PARENT_PID", std::process::id().to_string());
 
             // Algunas instalaciones de Windows exponen TEMP/TMP con una ruta
             // corta (por ejemplo, `C:\\Users\\CHARLI~1`). Java NIO puede fallar
@@ -409,6 +424,18 @@ pub fn run() {
                 };
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // El instalador de actualizaciones puede salir sin emitir
+            // CloseRequested. Limpiar también en Exit impide que un backend
+            // antiguo conserve el puerto 8765 después de actualizar.
+            if matches!(event, tauri::RunEvent::Exit) {
+                let state: State<JavaProcess> = app_handle.state();
+                if let Some(mut child) = state.0.lock().unwrap().take() {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                };
+            }
+        });
 }

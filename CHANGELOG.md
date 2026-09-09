@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.9] — 2026-09-09
+
+### Correcciones de firma y actualizaciones
+- Corregida la desincronización del backend después de actualizar la aplicación en Windows.
+- Penké usa siempre el runtime Java privado incluido en el instalador.
+- El backend se cierra automáticamente cuando la aplicación termina o se actualiza.
+- Añadido el proveedor criptográfico nativo requerido para certificados Windows-MY y tokens.
+- Mejorado el mensaje cuando la sesión de firma queda desincronizada.
+
 ## [1.0.8] — 2026-09-09
 
 ### Correcciones de distribución

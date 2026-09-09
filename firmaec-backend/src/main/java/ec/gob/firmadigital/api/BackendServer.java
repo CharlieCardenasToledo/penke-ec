@@ -16,11 +16,36 @@ public class BackendServer {
 
     public static final int PORT = 8765;
 
+    private static void monitorParentProcess() {
+        String value = System.getenv("PENKE_PARENT_PID");
+        if (value == null || value.isBlank()) return;
+
+        try {
+            long parentPid = Long.parseLong(value);
+            ProcessHandle.of(parentPid).ifPresent(parent -> {
+                Thread monitor = new Thread(() -> {
+                    try {
+                        while (parent.isAlive()) Thread.sleep(500);
+                        System.err.println("Penké principal terminó; cerrando backend.");
+                        System.exit(0);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }, "penke-parent-monitor");
+                monitor.setDaemon(true);
+                monitor.start();
+            });
+        } catch (NumberFormatException e) {
+            System.err.println("PENKE_PARENT_PID inválido: " + value);
+        }
+    }
+
     public static void main(String[] args) {
         String apiToken = System.getenv("PENKE_API_TOKEN");
         if (apiToken == null || apiToken.isBlank()) {
             throw new IllegalStateException("PENKE_API_TOKEN no está configurado");
         }
+        monitorParentProcess();
 
         Set<String> allowedOrigins = Set.of(
             "http://tauri.localhost",

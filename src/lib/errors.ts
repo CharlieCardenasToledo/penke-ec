@@ -19,6 +19,8 @@ export function traducirErrorFirma(e: unknown): string {
   }
   const raw = e instanceof Error ? e.message : String(e);
   const r = raw.toLowerCase();
+  if (r.includes("sesión no autorizada") || r.includes("unauthorized"))
+    return "El motor de firma quedó desincronizado después de una actualización. Reinicia Penké e inténtalo de nuevo.";
   if (r.includes("password") || r.includes("mac check") || r.includes("wrong password") || r.includes("incorrect"))
     return "Contraseña incorrecta. Verifica la clave de tu certificado.";
   if (r.includes("ocsp") || r.includes("revoc") || r.includes("revoked"))
