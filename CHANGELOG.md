@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.7] — 2026-09-09
+
+### Correcciones de distribución
+- Corregida la generación del instalador AppImage en Ubuntu 24.04 mediante la ejecución compatible de las herramientas auxiliares de `linuxdeploy`.
+- Conservados los instaladores firmados para Windows, macOS y Linux en el flujo de publicación.
+
 ## [1.0.6] — 2026-09-09
 
 ### Correcciones de distribución
