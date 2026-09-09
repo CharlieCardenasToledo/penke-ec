@@ -84,8 +84,8 @@ fn backend_session_token(state: State<BackendSessionToken>) -> Result<String, St
         .map_err(|_| "No se pudo acceder al token de sesión".to_string())
 }
 
-const BACKEND_VERSION: &str = "1.0.5";
-const BACKEND_BUILD_ID: &str = "2026-09-08";
+const BACKEND_VERSION: &str = "1.0.6";
+const BACKEND_BUILD_ID: &str = "2026-09-09";
 const BACKEND_API_VERSION: u32 = 2;
 
 #[tauri::command]

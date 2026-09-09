@@ -1,6 +1,6 @@
 [package]
 name = "penke-ec"
-version = "1.0.5"
+version = "1.0.6"
 description = "Cliente de escritorio para firma digital con certificados acreditados en Ecuador"
 authors = ["Charlie Cárdenas Toledo"]
 edition = "2021"

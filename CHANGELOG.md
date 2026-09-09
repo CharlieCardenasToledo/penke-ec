@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6] — 2026-09-09
+
+### Correcciones de distribución
+- Corregido el workflow de integración continua para generar el runtime Java embebido antes de validar Rust en Linux.
+- Verificada la compilación de `cargo check` en Ubuntu con el runtime incluido.
+- Actualizada la versión de la aplicación a 1.0.6 para publicar los artefactos multiplataforma.
+
 ## [1.0.5] — 2026-09-08
 
 ### Correcciones de interfaz
