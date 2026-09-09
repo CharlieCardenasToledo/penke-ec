@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.9] — 2026-09-09
+
+> Describe los cambios de esta versión aquí antes de hacer el release.
+
 ## [1.0.8] — 2026-09-09
 
 ### Correcciones de distribución
