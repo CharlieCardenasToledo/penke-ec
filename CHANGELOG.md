@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.8] — 2026-09-09
+
+### Correcciones de distribución
+- Estabilizado el empaquetado Linux para publicar instaladores `.deb` y `.rpm` sin depender de `linuxdeploy`/AppImage en Ubuntu 24.04.
+- Manteniendo la publicación de instaladores firmados para Windows y macOS.
+
 ## [1.0.7] — 2026-09-09
 
 ### Correcciones de distribución

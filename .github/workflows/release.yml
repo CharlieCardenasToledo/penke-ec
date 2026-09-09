@@ -202,11 +202,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # Ubuntu 24.04 no siempre expone FUSE 2 para ejecutar los AppImages
-          # auxiliares de linuxdeploy. Esta variable permite que linuxdeploy
-          # se ejecute extraído y evita que falle antes de crear el AppImage.
-          APPIMAGE_EXTRACT_AND_RUN: "1"
         with:
+          # AppImage/linuxdeploy falla de forma intermitente en Ubuntu 24.04.
+          # Debian y RPM son los formatos Linux soportados y reproducibles.
+          args: --bundles deb,rpm
           tagName: ${{ github.ref_name }}
           releaseName: "Penké EC ${{ github.ref_name }}"
           releaseBody: |
