@@ -17,29 +17,30 @@ Penké es una aplicación de escritorio para firmar, verificar y validar documen
 
 ## Descargas
 
-Versión estable actual: **[v1.0.3](https://github.com/CharlieCardenasToledo/penke-ec/releases/tag/v1.0.3)**
+Versión estable actual: **[v1.0.9](https://github.com/CharlieCardenasToledo/penke-ec/releases/tag/v1.0.9)**
 
 ### Windows
 
 | Instalador | Recomendado para | Enlace |
 |---|---|---|
-| `.exe` | Instalación sencilla para la mayoría de usuarios | [Descargar instalador Windows](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_x64-setup.exe) |
-| `.msi` | Despliegues administrados y empresariales | [Descargar paquete MSI](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_x64_en-US.msi) |
+| `.exe` | Instalación sencilla para la mayoría de usuarios | [Descargar instalador Windows](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC_1.0.9_x64-setup.exe) |
+| `.msi` | Despliegues administrados y empresariales | [Descargar paquete MSI](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC_1.0.9_x64_en-US.msi) |
+| `.msix` | Publicación en Microsoft Store; firma gestionada por Store | [Ver paquetes de la release](https://github.com/CharlieCardenasToledo/penke-ec/releases) |
 
 ### macOS
 
 | Paquete | Arquitectura | Enlace |
 |---|---|---|
-| `.dmg` | Universal — Intel y Apple Silicon | [Descargar instalador macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_universal.dmg) |
-| `.tar.gz` | Universal — distribución alternativa | [Descargar paquete macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_universal.app.tar.gz) |
+| `.dmg` | Universal — Intel y Apple Silicon | [Descargar instalador macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC_1.0.9_universal.dmg) |
+| `.tar.gz` | Universal — distribución alternativa | [Descargar paquete macOS](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC_universal.app.tar.gz) |
 
 ### Linux
 
 | Paquete | Distribuciones | Enlace |
 |---|---|---|
-| `.AppImage` | Portátil; compatible con la mayoría de distribuciones | [Descargar AppImage](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_amd64.AppImage) |
-| `.deb` | Debian, Ubuntu y derivadas | [Descargar paquete DEB](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC_1.0.3_amd64.deb) |
-| `.rpm` | Fedora, RHEL, openSUSE y derivadas | [Descargar paquete RPM](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.3/Penke.EC-1.0.3-1.x86_64.rpm) |
+| `.AppImage` | Portátil; compatible con la mayoría de distribuciones | [Descargar AppImage](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC_1.0.9_amd64.AppImage) |
+| `.deb` | Debian, Ubuntu y derivadas | [Descargar paquete DEB](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC_1.0.9_amd64.deb) |
+| `.rpm` | Fedora, RHEL, openSUSE y derivadas | [Descargar paquete RPM](https://github.com/CharlieCardenasToledo/penke-ec/releases/download/v1.0.9/Penke.EC-1.0.9-1.x86_64.rpm) |
 
 Consulta la [página completa de releases](https://github.com/CharlieCardenasToledo/penke-ec/releases) para ver el historial y las notas de cada versión.
 
@@ -128,7 +129,7 @@ npm run release minor   # Nuevas funcionalidades compatibles
 npm run release major   # Cambios incompatibles
 ```
 
-El workflow de GitHub Actions genera automáticamente los instaladores para Windows, macOS y Linux al publicar un tag `v*`. El pipeline incluye la compilación y verificación del backend Java, además del empaquetado Tauri.
+El workflow de GitHub Actions genera automáticamente los instaladores para Windows, macOS y Linux al publicar un tag `v*`. En Windows también prepara un paquete `.msix` para Microsoft Store. Las variables `MSIX_IDENTITY_NAME` y `MSIX_PUBLISHER` deben contener los valores exactos asignados por Partner Center; el workflow detiene la publicación si faltan.
 
 Las releases incluyen artefactos firmados para que el actualizador pueda verificar su autenticidad. La clave privada nunca debe entrar al repositorio. La primera vez, guárdala como secreto de GitHub desde PowerShell:
 
