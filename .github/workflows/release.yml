@@ -66,10 +66,25 @@ jobs:
         shell: pwsh
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
             throw "Falta el secreto TAURI_SIGNING_PRIVATE_KEY. Configúralo antes de publicar una release."
           }
+          if ([string]::IsNullOrWhiteSpace($env:MSIX_IDENTITY_NAME) -or [string]::IsNullOrWhiteSpace($env:MSIX_PUBLISHER)) {
+            throw "Faltan las variables MSIX_IDENTITY_NAME y MSIX_PUBLISHER de Partner Center."
+          }
+
+      - name: Build MSIX for Microsoft Store
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+        run: |
+          npm run tauri build -- --bundles nsis
+          npm run build:msix
 
       - name: Build & release
         uses: tauri-apps/tauri-action@v0
@@ -85,6 +100,15 @@ jobs:
             Descarga el instalador de tu sistema más abajo y ábrelo. No necesitas instalar nada más.
           releaseDraft: false
           prerelease: false
+
+      - name: Upload MSIX to GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $msix = Get-ChildItem -LiteralPath "src-tauri\target\release\bundle\msix" -Filter "*.msix" | Select-Object -First 1
+          if ($null -eq $msix) { throw "No se generó ningún MSIX." }
+          gh release upload "${{ github.ref_name }}" $msix.FullName --clobber
 
   build-macos:
     runs-on: macos-latest
