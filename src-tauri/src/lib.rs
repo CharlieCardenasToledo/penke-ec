@@ -84,7 +84,7 @@ fn backend_session_token(state: State<BackendSessionToken>) -> Result<String, St
         .map_err(|_| "No se pudo acceder al token de sesión".to_string())
 }
 
-const BACKEND_VERSION: &str = "1.0.10";
+const BACKEND_VERSION: &str = "1.0.11";
 const BACKEND_BUILD_ID: &str = "2026-09-14";
 const BACKEND_API_VERSION: u32 = 2;
 
