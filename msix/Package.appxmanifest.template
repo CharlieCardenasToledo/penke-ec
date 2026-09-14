@@ -22,7 +22,7 @@
                         MaxVersionTested="10.0.26100.0" />
   </Dependencies>
   <Applications>
-    <Application Id="PenkéEC"
+    <Application Id="PenkeEC"
                  Executable="penke-ec.exe"
                  EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements AppListEntry="default"
