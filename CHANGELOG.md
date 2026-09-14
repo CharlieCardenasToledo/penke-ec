@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.12] — 2026-09-14
+
+> Describe los cambios de esta versión aquí antes de hacer el release.
+
 ## [1.0.11] — 2026-09-14
 
 > Describe los cambios de esta versión aquí antes de hacer el release.
